@@ -146,15 +146,16 @@ bool RA_sendInput(int fd, uint32_t frame_num, uint32_t client_num, uint16_t inpu
     // RA protocol CMD_INPUT payload (protocol v6):
     //   uint32_t frame_num
     //   uint32_t (is_server << 31) | (client_num & 0x7FFFFFFF)
-    //   uint32_t controller_input (RETRO_DEVICE_JOYPAD bitmask)
-    //   uint32_t analog1 (0 for joypad-only)
-    //   uint32_t analog2 (0 for joypad-only)
-    uint32_t payload[5];
+    //   uint32_t input_word[N] — one word per device this player controls
+    //
+    // For RETRO_DEVICE_JOYPAD: N=1 (just the digital button bitmask).
+    // The payload MUST be exactly (2 + N) * 4 bytes. RA computes N from
+    // the payload size: N = (size/4) - 2. Sending extra words (e.g. analog
+    // zeros) causes RA to overflow the per-device input buffer and crash.
+    uint32_t payload[3];
     payload[0] = htonl(frame_num);
     payload[1] = htonl(client_num & 0x7FFFFFFF);  // is_server = 0 for client
-    payload[2] = htonl((uint32_t)input);
-    payload[3] = htonl(0);  // No analog
-    payload[4] = htonl(0);  // No analog
+    payload[2] = htonl((uint32_t)input);           // 1 joypad input word
 
     return RA_sendCmd(fd, RA_CMD_INPUT, payload, sizeof(payload));
 }
