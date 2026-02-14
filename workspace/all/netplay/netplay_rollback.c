@@ -115,21 +115,75 @@ static bool has_pending_data(int fd) {
     return select(fd + 1, &fds, NULL, NULL, &tv) > 0;
 }
 
+// Read exactly `size` bytes non-blocking (expects data to be available).
+static bool recv_exact_nb(int fd, void* buf, size_t size) {
+    uint8_t* ptr = (uint8_t*)buf;
+    size_t remaining = size;
+    while (remaining > 0) {
+        ssize_t ret = recv(fd, ptr, remaining, 0);
+        if (ret <= 0) {
+            if (ret < 0 && (errno == EAGAIN || errno == EWOULDBLOCK)) continue;
+            return false;
+        }
+        ptr += ret;
+        remaining -= ret;
+    }
+    return true;
+}
+
+// Drain and discard `remaining` bytes from socket.
+static bool drain_bytes(int fd, uint32_t remaining) {
+    uint8_t tmp[256];
+    while (remaining > 0) {
+        uint32_t chunk = remaining < sizeof(tmp) ? remaining : sizeof(tmp);
+        ssize_t ret = recv(fd, tmp, chunk, 0);
+        if (ret <= 0) {
+            if (ret < 0 && (errno == EAGAIN || errno == EWOULDBLOCK)) continue;
+            return false;
+        }
+        remaining -= ret;
+    }
+    return true;
+}
+
+// Read payload into buf (up to max_size), drain any excess.
+static bool recv_payload(int fd, void* buf, uint32_t max_size, uint32_t payload_size) {
+    if (payload_size == 0) return true;
+    if (payload_size <= max_size) {
+        return recv_exact_nb(fd, buf, payload_size);
+    }
+    // Read what fits, drain the rest
+    if (!recv_exact_nb(fd, buf, max_size)) return false;
+    return drain_bytes(fd, payload_size - max_size);
+}
+
+// Read an RA packet header from the socket (non-blocking).
+// Returns true if header was read, fields are in host byte order.
+static bool recv_ra_header(RA_PacketHeader* hdr) {
+    if (!has_pending_data(rb.tcp_fd)) return false;
+    if (!recv_exact_nb(rb.tcp_fd, hdr, sizeof(*hdr))) return false;
+    hdr->cmd  = ntohl(hdr->cmd);
+    hdr->size = ntohl(hdr->size);
+    return true;
+}
+
 // Receive and process all pending RA commands. Returns the oldest frame
 // where a prediction was wrong, or UINT32_MAX if all predictions were correct.
 static uint32_t process_incoming(void) {
     uint32_t oldest_wrong = UINT32_MAX;
 
     while (rb.tcp_fd >= 0 && has_pending_data(rb.tcp_fd)) {
+        // Read header (8 bytes) first, then decide how to receive the payload
         RA_PacketHeader hdr;
-        uint8_t buf[4096];
-
-        if (!RA_recvCmd(rb.tcp_fd, &hdr, buf, sizeof(buf), 0)) {
+        if (!recv_ra_header(&hdr)) {
             break;
         }
 
         switch (hdr.cmd) {
         case RA_CMD_INPUT: {
+            uint8_t buf[32];  // CMD_INPUT is small (~20 bytes)
+            if (!recv_payload(rb.tcp_fd, buf, sizeof(buf), hdr.size)) break;
+
             uint32_t frame_num, player_num;
             uint16_t input;
             if (!RA_parseInput(buf, hdr.size, &frame_num, &player_num, &input)) {
@@ -162,7 +216,9 @@ static uint32_t process_incoming(void) {
         }
 
         case RA_CMD_CRC: {
-            // Server's CRC for a frame - we can compare with ours for desync detection
+            uint8_t buf[8];
+            if (!recv_payload(rb.tcp_fd, buf, sizeof(buf), hdr.size)) break;
+
             if (hdr.size >= 8) {
                 uint32_t frame_num, server_crc;
                 memcpy(&frame_num, buf, 4);
@@ -180,31 +236,64 @@ static uint32_t process_incoming(void) {
         }
 
         case RA_CMD_LOAD_SAVESTATE: {
-            // Server is sending us a savestate for desync recovery
+            // Server is sending us a savestate for desync recovery.
             // Payload: uint32_t frame_num + uint32_t state_size + state_data
-            if (hdr.size >= 8) {
-                uint32_t frame_num, state_size;
-                memcpy(&frame_num, buf, 4);
-                memcpy(&state_size, buf + 4, 4);
-                frame_num = ntohl(frame_num);
-                state_size = ntohl(state_size);
-
-                if (state_size <= rb.state_size && hdr.size >= 8 + state_size) {
-                    LOG_info("Rollback: loading savestate from server for frame %u (%u bytes)\n",
-                             frame_num, state_size);
-                    if (rb.unserialize_fn(buf + 8, state_size)) {
-                        // Reset to this frame
-                        rb.self_frame = frame_num;
-                        rb.desync_detected = false;
-                        snprintf(rb.status_msg, sizeof(rb.status_msg),
-                                 "Resync from server (frame %u)", frame_num);
-                    }
-                }
+            // Savestate can be very large (100KB+), so we receive it into a
+            // dynamically allocated buffer, not the stack.
+            if (hdr.size < 8) {
+                drain_bytes(rb.tcp_fd, hdr.size);
+                break;
             }
+
+            // Read frame_num + state_size header (8 bytes)
+            uint8_t ss_hdr[8];
+            if (!recv_exact_nb(rb.tcp_fd, ss_hdr, 8)) break;
+            uint32_t remaining_payload = hdr.size - 8;
+
+            uint32_t frame_num, state_size;
+            memcpy(&frame_num, ss_hdr, 4);
+            memcpy(&state_size, ss_hdr + 4, 4);
+            frame_num = ntohl(frame_num);
+            state_size = ntohl(state_size);
+
+            if (state_size > rb.state_size || state_size > remaining_payload) {
+                LOG_info("Rollback: savestate size mismatch (%u vs %zu), draining\n",
+                         state_size, rb.state_size);
+                drain_bytes(rb.tcp_fd, remaining_payload);
+                break;
+            }
+
+            // Allocate temp buffer for the savestate data
+            void* ss_data = malloc(state_size);
+            if (!ss_data) {
+                LOG_info("Rollback: failed to allocate savestate buffer (%u bytes)\n", state_size);
+                drain_bytes(rb.tcp_fd, remaining_payload);
+                break;
+            }
+
+            if (!recv_exact_nb(rb.tcp_fd, ss_data, state_size)) {
+                free(ss_data);
+                break;
+            }
+            // Drain any remaining bytes after the state data
+            if (remaining_payload > state_size) {
+                drain_bytes(rb.tcp_fd, remaining_payload - state_size);
+            }
+
+            LOG_info("Rollback: loading savestate from server for frame %u (%u bytes)\n",
+                     frame_num, state_size);
+            if (rb.unserialize_fn(ss_data, state_size)) {
+                rb.self_frame = frame_num;
+                rb.desync_detected = false;
+                snprintf(rb.status_msg, sizeof(rb.status_msg),
+                         "Resync from server (frame %u)", frame_num);
+            }
+            free(ss_data);
             break;
         }
 
         case RA_CMD_DISCONNECT: {
+            drain_bytes(rb.tcp_fd, hdr.size);
             LOG_info("Rollback: server disconnected\n");
             rb.connected = false;
             snprintf(rb.status_msg, sizeof(rb.status_msg), "Server disconnected");
@@ -212,17 +301,20 @@ static uint32_t process_incoming(void) {
         }
 
         case RA_CMD_PAUSE: {
+            drain_bytes(rb.tcp_fd, hdr.size);
             snprintf(rb.status_msg, sizeof(rb.status_msg), "Server paused");
             break;
         }
 
         case RA_CMD_RESUME: {
+            drain_bytes(rb.tcp_fd, hdr.size);
             snprintf(rb.status_msg, sizeof(rb.status_msg), "Rollback active");
             break;
         }
 
         default:
-            // Unknown command - ignore
+            // Unknown command - drain payload and ignore
+            drain_bytes(rb.tcp_fd, hdr.size);
             break;
         }
     }
@@ -401,6 +493,12 @@ int Rollback_update(uint16_t local_input) {
     // 4. Process incoming data from the RA host
     //
     uint32_t oldest_wrong = process_incoming();
+
+    // Check if we got disconnected during processing
+    if (!rb.connected) {
+        pthread_mutex_unlock(&rb.mutex);
+        return 0;
+    }
 
     //
     // 5. If any past prediction was wrong, rollback and replay
