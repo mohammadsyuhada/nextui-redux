@@ -209,7 +209,7 @@ static uint32_t process_incoming(void) {
             slot->remote_confirmed = true;
 
             // Update read_frame (track latest confirmed)
-            if (frame_num > rb.read_frame || rb.read_frame == 0) {
+            if (frame_num > rb.read_frame || rb.read_frame == rb.start_frame) {
                 rb.read_frame = frame_num;
             }
             break;
@@ -226,6 +226,15 @@ static uint32_t process_incoming(void) {
                 frame_num = ntohl(frame_num);
                 server_crc = ntohl(server_crc);
                 RollbackFrameSlot* slot = get_slot(frame_num);
+
+                // Compute local CRC on-demand if we have saved state but no CRC yet
+                if (slot->crc == 0 && slot->state_saved) {
+                    uint32_t idx = frame_num & ROLLBACK_BUFFER_MASK;
+                    if (rb.state_buffer[idx]) {
+                        slot->crc = compute_crc32(rb.state_buffer[idx], rb.state_size);
+                    }
+                }
+
                 if (slot->crc != 0 && slot->crc != server_crc) {
                     LOG_info("Rollback: DESYNC at frame %u (local=0x%08x server=0x%08x)\n",
                              frame_num, slot->crc, server_crc);
