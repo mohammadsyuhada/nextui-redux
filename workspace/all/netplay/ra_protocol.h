@@ -62,13 +62,13 @@
 #define RA_CMD_INFO             0x0022
 #define RA_CMD_SYNC             0x0023
 #define RA_CMD_SPECTATE         0x0024
-#define RA_CMD_PLAY             0x0041
-#define RA_CMD_MODE             0x0042
+#define RA_CMD_PLAY             0x0025
+#define RA_CMD_MODE             0x0026
 #define RA_CMD_CRC              0x0040
-#define RA_CMD_REQUEST_SAVESTATE 0x0043
-#define RA_CMD_LOAD_SAVESTATE   0x0044
-#define RA_CMD_PAUSE            0x0045
-#define RA_CMD_RESUME           0x0046
+#define RA_CMD_REQUEST_SAVESTATE 0x0041
+#define RA_CMD_LOAD_SAVESTATE   0x0042
+#define RA_CMD_PAUSE            0x0043
+#define RA_CMD_RESUME           0x0044
 #define RA_CMD_CFG              0x0061
 #define RA_CMD_CFG_ACK          0x0062
 

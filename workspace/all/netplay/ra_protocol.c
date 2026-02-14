@@ -334,9 +334,69 @@ int RA_clientHandshake(RA_HandshakeCtx* ctx) {
     LOG_info("RA handshake: start_frame=%u, client_num=%u\n",
              ctx->start_frame, ctx->client_num);
 
-    // The server auto-assigns us as a player via CMD_SYNC (client_num).
-    // No CMD_PLAY/CMD_MODE exchange needed for direct connections.
-    // Input exchange starts immediately after SYNC.
+    //
+    // Step 7: Send CMD_PLAY (request a player slot)
+    //
+    // After SYNC, the client must request to play. Without this, the server
+    // treats us as a spectator and crashes when we send CMD_INPUT.
+    // Payload: uint32_t with bit 31 = slave flag, bits 16-23 = share mode,
+    // bits 0-15 = requested devices. 0 = auto-assign.
+    uint32_t play_request = htonl(0);  // Auto-assign device
+    if (!RA_sendCmd(fd, RA_CMD_PLAY, &play_request, sizeof(play_request))) {
+        LOG_info("RA handshake: failed to send PLAY\n");
+        return -1;
+    }
+
+    //
+    // Step 8: Wait for CMD_MODE response (player assignment confirmation)
+    //
+    // The server responds with CMD_MODE (60 bytes) containing our assignment.
+    // It may send other commands (INPUT, CRC) before MODE, so we loop.
+    // MODE payload: uint32_t frame, uint32_t mode_flags, uint32_t devices,
+    //               uint8_t share_modes[16], char nick[32]
+    // mode_flags: bit 31 = YOU, bit 30 = PLAYING, bit 29 = SLAVE, bits 0-15 = client_num
+    bool got_mode = false;
+    for (int attempts = 0; attempts < 50 && !got_mode; attempts++) {
+        RA_PacketHeader mode_hdr;
+        uint8_t mode_buf[64];  // CMD_MODE is 60 bytes
+        if (!RA_recvCmd(fd, &mode_hdr, mode_buf, sizeof(mode_buf), 10000)) {
+            LOG_info("RA handshake: timeout waiting for MODE\n");
+            return -1;
+        }
+
+        if (mode_hdr.cmd == RA_CMD_MODE && mode_hdr.size >= 8) {
+            uint32_t mode_frame, mode_flags;
+            memcpy(&mode_frame, mode_buf, 4);
+            memcpy(&mode_flags, mode_buf + 4, 4);
+            mode_frame = ntohl(mode_frame);
+            mode_flags = ntohl(mode_flags);
+
+            // Check YOU bit (bit 31) - this MODE is addressed to us
+            if (mode_flags & (1U << 31)) {
+                // Check PLAYING bit (bit 30)
+                if (mode_flags & (1U << 30)) {
+                    uint32_t assigned_client = mode_flags & 0xFFFF;
+                    LOG_info("RA handshake: MODE - playing as client %u, start frame=%u\n",
+                             assigned_client, mode_frame);
+                    // Server may provide a later start frame for our input
+                    if (mode_frame > ctx->start_frame) {
+                        ctx->start_frame = mode_frame;
+                    }
+                    got_mode = true;
+                } else {
+                    LOG_info("RA handshake: MODE - play request refused\n");
+                    return -1;
+                }
+            }
+            // MODE without YOU bit is for another client - ignore
+        }
+        // Non-MODE commands are consumed by RA_recvCmd and discarded
+    }
+
+    if (!got_mode) {
+        LOG_info("RA handshake: never received MODE confirmation\n");
+        return -1;
+    }
 
     return 0;
 }
