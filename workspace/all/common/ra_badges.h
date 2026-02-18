@@ -10,17 +10,17 @@
 
 // Badge size for notifications (will be scaled)
 #define RA_BADGE_SIZE 64
-#define RA_BADGE_NOTIFY_SIZE 24  // Size for notification icons
+#define RA_BADGE_NOTIFY_SIZE 24 // Size for notification icons
 
 // Cache directory path (under SDCARD_PATH)
 #define RA_BADGE_CACHE_DIR SHARED_USERDATA_PATH "/.ra/badges"
 
 // Badge state
 typedef enum {
-	RA_BADGE_STATE_UNKNOWN,     // Badge not yet requested
+	RA_BADGE_STATE_UNKNOWN,		// Badge not yet requested
 	RA_BADGE_STATE_DOWNLOADING, // Download in progress
-	RA_BADGE_STATE_CACHED,      // Downloaded and cached locally
-	RA_BADGE_STATE_FAILED,      // Download failed
+	RA_BADGE_STATE_CACHED,		// Downloaded and cached locally
+	RA_BADGE_STATE_FAILED,		// Download failed
 } RA_BadgeState;
 
 /**

@@ -19,8 +19,7 @@ extern uint32_t THEME_COLOR7_255;
 typedef int (*FontLoad_callback_t)(const char* path);
 typedef int (*ColorSet_callback_t)(void);
 
-enum
-{
+enum {
 	// MinUI: Game.gba.sav
 	SAVE_FORMAT_SAV,
 	//Retroarch: Game.srm
@@ -31,8 +30,7 @@ enum
 	SAVE_FORMAT_SRM_UNCOMPRESSED
 };
 
-enum
-{
+enum {
 	// MinUI: Game.st0
 	STATE_FORMAT_SAV,
 	//Retroarch-ish: Game.state.<n> (a typo, but keeping it to avoid a breaking change)
@@ -87,12 +85,12 @@ typedef struct
 	double gameArtWidth;	 // [0,1] -> 0-100% of screen width
 
 	// font loading/unloading callback
-    FontLoad_callback_t onFontChange;
+	FontLoad_callback_t onFontChange;
 
-    // color update callback
-    ColorSet_callback_t onColorSet;
+	// color update callback
+	ColorSet_callback_t onColorSet;
 
-    // UI
+	// UI
 	bool showClock;
 	bool clock24h;
 	bool showBatteryPercent;
@@ -122,7 +120,7 @@ typedef struct
 
 	// Haptic
 	bool haptics;
-	
+
 	// Networking
 	bool ntp;
 	int currentTimezone; // index of timezone in tz database
@@ -144,16 +142,16 @@ typedef struct
 	char raUsername[64];
 	char raPassword[128];
 	bool raHardcoreMode;
-	char raToken[64];           // API token (stored after successful auth)
-	bool raAuthenticated;       // Whether we have a valid token
-	bool raShowNotifications;   // Show achievement unlock notifications
-	int raNotificationDuration; // Duration for achievement notifications (1-5 seconds)
+	char raToken[64];					// API token (stored after successful auth)
+	bool raAuthenticated;				// Whether we have a valid token
+	bool raShowNotifications;			// Show achievement unlock notifications
+	int raNotificationDuration;			// Duration for achievement notifications (1-5 seconds)
 	int raProgressNotificationDuration; // Duration for progress notifications (0-5 seconds, 0 = disabled)
-	int raAchievementSortOrder; // Sort order for achievements list (RA_SORT_* enum)
+	int raAchievementSortOrder;			// Sort order for achievements list (RA_SORT_* enum)
 
 } NextUISettings;
 
-#define CFG_DEFAULT_FONT_ID 1  // Next
+#define CFG_DEFAULT_FONT_ID 1 // Next
 #define CFG_DEFAULT_COLOR1 0xffffffU
 #define CFG_DEFAULT_COLOR2 0x9b2257U
 #define CFG_DEFAULT_COLOR3 0x1e2329U
@@ -214,7 +212,7 @@ typedef struct
 
 void CFG_init(FontLoad_callback_t fontCallback, ColorSet_callback_t ccb);
 void CFG_print(void);
-void CFG_get(const char *key, char * value);
+void CFG_get(const char* key, char* value);
 // void CFG_defaults(NextUISettings*);
 //  The font id to use as the UI font.
 //  0 - Default MinUI font

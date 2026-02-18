@@ -18,10 +18,10 @@
 
 // HTTP response structure
 typedef struct HTTP_Response {
-	char* data;           // Response body (caller must free)
-	size_t size;          // Response body size
-	int http_status;      // HTTP status code (200, 404, etc.) or -1 on error
-	char* error;          // Error message if failed (caller must free), NULL on success
+	char* data;		 // Response body (caller must free)
+	size_t size;	 // Response body size
+	int http_status; // HTTP status code (200, 404, etc.) or -1 on error
+	char* error;	 // Error message if failed (caller must free), NULL on success
 } HTTP_Response;
 
 /**
@@ -66,7 +66,7 @@ void HTTP_getAsync(const char* url, HTTP_Callback callback, void* userdata);
  * @param userdata User data to pass to callback
  */
 void HTTP_postAsync(const char* url, const char* post_data, const char* content_type,
-                    HTTP_Callback callback, void* userdata);
+					HTTP_Callback callback, void* userdata);
 
 /**
  * Free an HTTP response structure.

@@ -1,0 +1,10 @@
+CompileFlags:
+  Remove:
+    - "-mcpu=*"
+    - "-flto*"
+    - "-Ofast"
+    - "-fomit-frame-pointer"
+
+Diagnostics:
+  Suppress:
+    - "-Wunused-*"

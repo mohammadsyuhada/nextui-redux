@@ -18,33 +18,33 @@
 #define SYSTEM_INDICATOR_DURATION_MS 500
 
 typedef enum {
-    NOTIFICATION_SAVE_STATE,
-    NOTIFICATION_LOAD_STATE,
-    NOTIFICATION_SETTING,       // volume/brightness/colortemp adjustments
-    NOTIFICATION_ACHIEVEMENT,   // RetroAchievements unlocks
+	NOTIFICATION_SAVE_STATE,
+	NOTIFICATION_LOAD_STATE,
+	NOTIFICATION_SETTING,	  // volume/brightness/colortemp adjustments
+	NOTIFICATION_ACHIEVEMENT, // RetroAchievements unlocks
 } NotificationType;
 
 typedef enum {
-    NOTIFICATION_STATE_VISIBLE,   // Fully visible, waiting
-    NOTIFICATION_STATE_DONE,      // Ready for removal
+	NOTIFICATION_STATE_VISIBLE, // Fully visible, waiting
+	NOTIFICATION_STATE_DONE,	// Ready for removal
 } NotificationState;
 
 // System indicator types (volume/brightness/colortemp)
 // These values match the show_setting values from PWR_update: 1=brightness, 2=volume, 3=colortemp
 typedef enum {
-    SYSTEM_INDICATOR_NONE = 0,
-    SYSTEM_INDICATOR_BRIGHTNESS = 1,
-    SYSTEM_INDICATOR_VOLUME = 2,
-    SYSTEM_INDICATOR_COLORTEMP = 3,
+	SYSTEM_INDICATOR_NONE = 0,
+	SYSTEM_INDICATOR_BRIGHTNESS = 1,
+	SYSTEM_INDICATOR_VOLUME = 2,
+	SYSTEM_INDICATOR_COLORTEMP = 3,
 } SystemIndicatorType;
 
 typedef struct {
-    NotificationType type;
-    char message[NOTIFICATION_MAX_MESSAGE];
-    SDL_Surface* icon;          // Optional, NULL for text-only (future use)
-    uint32_t start_time;        // SDL_GetTicks() when notification started
-    uint32_t duration_ms;       // How long to stay visible
-    NotificationState state;
+	NotificationType type;
+	char message[NOTIFICATION_MAX_MESSAGE];
+	SDL_Surface* icon;	  // Optional, NULL for text-only (future use)
+	uint32_t start_time;  // SDL_GetTicks() when notification started
+	uint32_t duration_ms; // How long to stay visible
+	NotificationState state;
 } Notification;
 
 /**

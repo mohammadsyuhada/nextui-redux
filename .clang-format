@@ -1,0 +1,57 @@
+---
+Language: C
+BasedOnStyle: LLVM
+
+# Indentation
+UseTab: Always
+TabWidth: 4
+IndentWidth: 4
+ContinuationIndentWidth: 4
+
+# Braces — K&R style (opening brace on same line)
+BreakBeforeBraces: Attach
+
+# Line length — no enforced wrapping (existing code has very long lines)
+ColumnLimit: 0
+
+# Pointer alignment: left (Type* var)
+PointerAlignment: Left
+
+# Spaces
+SpaceBeforeParens: ControlStatements
+SpacesInParentheses: false
+SpaceAfterCStyleCast: false
+SpaceBeforeAssignmentOperators: true
+SpaceBeforeRangeBasedForLoopColon: true
+
+# Arguments / parameters
+BinPackArguments: true
+BinPackParameters: true
+AlignAfterOpenBracket: Align
+
+# Binary operators
+BreakBeforeBinaryOperators: None
+
+# Single-line blocks
+AllowShortBlocksOnASingleLine: Empty
+AllowShortCaseLabelsOnASingleLine: false
+AllowShortFunctionsOnASingleLine: Empty
+AllowShortIfStatementsOnASingleLine: Never
+AllowShortLoopsOnASingleLine: false
+
+# Switch/case
+IndentCaseLabels: false
+
+# Includes
+SortIncludes: Never
+
+# Misc
+AlignConsecutiveMacros: None
+AlignConsecutiveAssignments: None
+AlignConsecutiveDeclarations: None
+AlignEscapedNewlines: Left
+AlignTrailingComments: true
+InsertBraces: false
+KeepEmptyLinesAtTheStartOfBlocks: false
+MaxEmptyLinesToKeep: 2
+ReflowComments: false

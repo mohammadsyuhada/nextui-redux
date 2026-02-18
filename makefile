@@ -172,6 +172,32 @@ endif
 
 common: build system cores
 	
+format:
+	git ls-files '*.c' '*.h' | xargs clang-format -i
+
+compile-commands:
+	@echo "Generating compile_commands.json..."
+	@echo '[' > compile_commands.json
+	@first=1; \
+	git ls-files '*.c' | \
+	grep -v 'cores/src' | \
+		grep -v 'libretro-common' | \
+		grep -v 'libchdr' | \
+		grep -v 'rcheevos/src' | \
+		grep -v 'nextui-music-player' | \
+		grep -v 'nextui-video-player' | \
+		grep -v 'nextui-netplay' | \
+	while read -r file; do \
+		if [ "$$first" = "1" ]; then first=0; else echo ',' >> compile_commands.json; fi; \
+		printf '  {"directory": "%s", "file": "%s/%s", "arguments": ["clang", "-std=gnu99", "-DUSE_SDL2", "-DUSE_GLES", "-DGL_GLEXT_PROTOTYPES", "-DPLATFORM=\\"tg5040\\"", "-I%s/workspace/all/common", "-I%s/workspace/all/nextui", "-I%s/workspace/all/minarch", "-I%s/workspace/all/minarch/libretro-common/include", "-I%s/workspace/tg5040/platform", "-I%s/workspace/tg5050/platform", "-I%s/workspace/desktop/platform", "-I%s/workspace/tg5040/libmsettings", "-I%s/workspace/tg5050/libmsettings", "-I%s/workspace/desktop/libmsettings", "-I/opt/homebrew/include", "-c", "%s/%s"]}' \
+			"$(CURDIR)" "$(CURDIR)" "$$file" \
+			"$(CURDIR)" "$(CURDIR)" "$(CURDIR)" "$(CURDIR)" "$(CURDIR)" "$(CURDIR)" "$(CURDIR)" "$(CURDIR)" "$(CURDIR)" "$(CURDIR)" \
+			"$(CURDIR)" "$$file" >> compile_commands.json; \
+	done
+	@echo '' >> compile_commands.json
+	@echo ']' >> compile_commands.json
+	@echo "Done. Generated compile_commands.json"
+
 clean:
 	rm -rf ./build
 	make clean -f $(TOOLCHAIN_FILE) PLATFORM=$(PLATFORM) COMPILE_CORES=$(COMPILE_CORES)

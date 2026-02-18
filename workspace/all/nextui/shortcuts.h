@@ -1,17 +1,9 @@
 #ifndef SHORTCUTS_H
 #define SHORTCUTS_H
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include "defines.h"
-#include "utils.h"
+#include "types.h"
 
 #define MAX_SHORTCUTS 12
-
-// Forward declarations
-typedef struct Entry Entry;
-typedef struct Array Array;
 
 // Initialize shortcuts (call in Menu_init)
 void Shortcuts_init(void);
@@ -20,7 +12,7 @@ void Shortcuts_init(void);
 void Shortcuts_quit(void);
 
 // Check if a shortcut exists for the given path (without SDCARD_PATH prefix)
-int Shortcuts_exists(char* path);
+int Shortcuts_exists(const char* path);
 
 // Add a shortcut for the given entry
 void Shortcuts_add(Entry* entry);
@@ -29,10 +21,10 @@ void Shortcuts_add(Entry* entry);
 void Shortcuts_remove(Entry* entry);
 
 // Check if inside Tools folder
-int Shortcuts_isInToolsFolder(char* path);
+int Shortcuts_isInToolsFolder(const char* path);
 
 // Check if inside a console directory (parent is ROMS_PATH)
-int Shortcuts_isInConsoleDir(char* path);
+int Shortcuts_isInConsoleDir(const char* path);
 
 // Get shortcuts count
 int Shortcuts_getCount(void);
@@ -50,7 +42,7 @@ int Shortcuts_validate(void);
 // Returns pointer to static buffer, caller should copy if needed
 char* Shortcuts_getPakBasename(const char* path);
 
-// Handle confirmation action (1=add, 2=remove) and reboot
+// Handle confirmation action (1=add, 2=remove)
 void Shortcuts_confirmAction(int action, Entry* entry);
 
 #endif // SHORTCUTS_H

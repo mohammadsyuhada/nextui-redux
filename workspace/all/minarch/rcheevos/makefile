@@ -64,7 +64,11 @@ SOURCES = \
 # Object files go in platform-specific directory
 OBJECTS = $(patsubst $(SRCDIR)/%.c,$(OBJDIR)/%.o,$(SOURCES))
 
-CFLAGS += $(OPT)
+# Strip -flto flags on desktop to avoid GCC DWARF/dsymutil warnings on macOS
+ifeq ($(PLATFORM), desktop)
+CFLAGS := $(filter-out -flto=auto -flto,$(CFLAGS))
+endif
+CFLAGS += $(OPT) -fomit-frame-pointer
 CFLAGS += -I$(INCDIR) -I$(SRCDIR) -std=gnu99
 # libretro.h is in minarch/libretro-common/include
 CFLAGS += -I../libretro-common/include

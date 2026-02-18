@@ -34,7 +34,8 @@ typedef struct {
 static int HTTPBuffer_init(HTTPBuffer* buf) {
 	buf->capacity = 4096;
 	buf->data = malloc(buf->capacity);
-	if (!buf->data) return -1;
+	if (!buf->data)
+		return -1;
 	buf->data[0] = '\0';
 	buf->size = 0;
 	return 0;
@@ -50,7 +51,8 @@ static int HTTPBuffer_append(HTTPBuffer* buf, const char* data, size_t len) {
 			return -1; // Too large
 		}
 		char* new_data = realloc(buf->data, new_cap);
-		if (!new_data) return -1;
+		if (!new_data)
+			return -1;
 		buf->data = new_data;
 		buf->capacity = new_cap;
 	}
@@ -71,19 +73,22 @@ static void HTTPBuffer_free(HTTPBuffer* buf) {
 
 // Escape a string for shell use (single quotes)
 static char* shell_escape(const char* str) {
-	if (!str) return strdup("");
-	
+	if (!str)
+		return strdup("");
+
 	// Count how many single quotes we need to escape
 	size_t len = strlen(str);
 	size_t quotes = 0;
 	for (size_t i = 0; i < len; i++) {
-		if (str[i] == '\'') quotes++;
+		if (str[i] == '\'')
+			quotes++;
 	}
-	
+
 	// Allocate: original + 3 chars per quote ('"'"') + 2 for surrounding quotes + 1 for null
 	char* escaped = malloc(len + quotes * 3 + 3);
-	if (!escaped) return NULL;
-	
+	if (!escaped)
+		return NULL;
+
 	char* p = escaped;
 	*p++ = '\'';
 	for (size_t i = 0; i < len; i++) {
@@ -100,17 +105,18 @@ static char* shell_escape(const char* str) {
 	}
 	*p++ = '\'';
 	*p = '\0';
-	
+
 	return escaped;
 }
 
 // Execute curl and capture output
 static HTTP_Response* execute_curl(const char* url, const char* post_data, const char* content_type) {
 	HTTP_Response* response = calloc(1, sizeof(HTTP_Response));
-	if (!response) return NULL;
-	
+	if (!response)
+		return NULL;
+
 	response->http_status = -1;
-	
+
 	// Build curl command
 	// -s: silent (no progress)
 	// -S: show errors
@@ -123,22 +129,22 @@ static HTTP_Response* execute_curl(const char* url, const char* post_data, const
 	char cmd[4096];
 	char user_agent[256];
 	HTTP_getUserAgent(user_agent, sizeof(user_agent));
-	
+
 	char* escaped_url = shell_escape(url);
 	char* escaped_ua = shell_escape(user_agent);
-	
+
 	if (!escaped_url || !escaped_ua) {
 		free(escaped_url);
 		free(escaped_ua);
 		response->error = strdup("Memory allocation failed");
 		return response;
 	}
-	
+
 	if (post_data) {
 		char* escaped_data = shell_escape(post_data);
 		const char* ct = content_type ? content_type : "application/x-www-form-urlencoded";
 		char* escaped_ct = shell_escape(ct);
-		
+
 		if (!escaped_data || !escaped_ct) {
 			free(escaped_url);
 			free(escaped_ua);
@@ -147,43 +153,43 @@ static HTTP_Response* execute_curl(const char* url, const char* post_data, const
 			response->error = strdup("Memory allocation failed");
 			return response;
 		}
-		
+
 		snprintf(cmd, sizeof(cmd),
-			"curl -s -S -k -L --connect-timeout %d -m %d "
-			"-A %s "
-			"-H 'Content-Type: %s' "
-			"-d %s "
-			"-w '\\n%%{http_code}' "
-			"%s 2>&1",
-			HTTP_TIMEOUT_SECS, HTTP_TIMEOUT_SECS * 2,
-			escaped_ua,
-			ct,
-			escaped_data,
-			escaped_url);
-		
+				 "curl -s -S -k -L --connect-timeout %d -m %d "
+				 "-A %s "
+				 "-H 'Content-Type: %s' "
+				 "-d %s "
+				 "-w '\\n%%{http_code}' "
+				 "%s 2>&1",
+				 HTTP_TIMEOUT_SECS, HTTP_TIMEOUT_SECS * 2,
+				 escaped_ua,
+				 ct,
+				 escaped_data,
+				 escaped_url);
+
 		free(escaped_data);
 		free(escaped_ct);
 	} else {
 		snprintf(cmd, sizeof(cmd),
-			"curl -s -S -k -L --connect-timeout %d -m %d "
-			"-A %s "
-			"-w '\\n%%{http_code}' "
-			"%s 2>&1",
-			HTTP_TIMEOUT_SECS, HTTP_TIMEOUT_SECS * 2,
-			escaped_ua,
-			escaped_url);
+				 "curl -s -S -k -L --connect-timeout %d -m %d "
+				 "-A %s "
+				 "-w '\\n%%{http_code}' "
+				 "%s 2>&1",
+				 HTTP_TIMEOUT_SECS, HTTP_TIMEOUT_SECS * 2,
+				 escaped_ua,
+				 escaped_url);
 	}
-	
+
 	free(escaped_url);
 	free(escaped_ua);
-	
+
 	// Execute curl
 	FILE* pipe = popen(cmd, "r");
 	if (!pipe) {
 		response->error = strdup("Failed to execute curl");
 		return response;
 	}
-	
+
 	// Read output
 	HTTPBuffer buf;
 	if (HTTPBuffer_init(&buf) != 0) {
@@ -191,7 +197,7 @@ static HTTP_Response* execute_curl(const char* url, const char* post_data, const
 		response->error = strdup("Memory allocation failed");
 		return response;
 	}
-	
+
 	char read_buf[4096];
 	size_t bytes_read;
 	while ((bytes_read = fread(read_buf, 1, sizeof(read_buf), pipe)) > 0) {
@@ -202,21 +208,21 @@ static HTTP_Response* execute_curl(const char* url, const char* post_data, const
 			return response;
 		}
 	}
-	
+
 	int exit_code = pclose(pipe);
-	
+
 	// Parse HTTP status from end of output
 	// Output format: <body>\n<status_code>
 	if (buf.size > 0) {
 		// Find last newline
 		char* last_newline = NULL;
 		for (size_t i = buf.size; i > 0; i--) {
-			if (buf.data[i-1] == '\n') {
-				last_newline = &buf.data[i-1];
+			if (buf.data[i - 1] == '\n') {
+				last_newline = &buf.data[i - 1];
 				break;
 			}
 		}
-		
+
 		if (last_newline) {
 			// Parse status code after newline
 			int status = atoi(last_newline + 1);
@@ -228,7 +234,7 @@ static HTTP_Response* execute_curl(const char* url, const char* post_data, const
 			}
 		}
 	}
-	
+
 	// Check for curl errors
 	if (exit_code != 0 && response->http_status <= 0) {
 		// Curl failed - the output is likely an error message
@@ -237,12 +243,12 @@ static HTTP_Response* execute_curl(const char* url, const char* post_data, const
 		HTTPBuffer_free(&buf);
 		return response;
 	}
-	
+
 	// Success - transfer ownership of buffer
 	response->data = buf.data;
 	response->size = buf.size;
 	buf.data = NULL; // Prevent free
-	
+
 	return response;
 }
 
@@ -260,33 +266,33 @@ typedef struct {
 
 static int async_request_thread(void* data) {
 	AsyncRequestData* req = (AsyncRequestData*)data;
-	
+
 	HTTP_Response* response;
 	if (req->post_data) {
 		response = execute_curl(req->url, req->post_data, req->content_type);
 	} else {
 		response = execute_curl(req->url, NULL, NULL);
 	}
-	
+
 	// Call callback on completion
 	if (req->callback) {
 		req->callback(response, req->userdata);
 	} else {
 		HTTP_freeResponse(response);
 	}
-	
+
 	// Cleanup request data
 	free(req->url);
 	free(req->post_data);
 	free(req->content_type);
 	free(req);
-	
+
 	return 0;
 }
 
-static void start_async_request(const char* url, const char* post_data, 
-                                const char* content_type, HTTP_Callback callback, 
-                                void* userdata) {
+static void start_async_request(const char* url, const char* post_data,
+								const char* content_type, HTTP_Callback callback,
+								void* userdata) {
 	AsyncRequestData* req = calloc(1, sizeof(AsyncRequestData));
 	if (!req) {
 		// Callback with error
@@ -295,16 +301,17 @@ static void start_async_request(const char* url, const char* post_data,
 			response->http_status = -1;
 			response->error = strdup("Memory allocation failed");
 		}
-		if (callback) callback(response, userdata);
+		if (callback)
+			callback(response, userdata);
 		return;
 	}
-	
+
 	req->url = strdup(url);
 	req->post_data = post_data ? strdup(post_data) : NULL;
 	req->content_type = content_type ? strdup(content_type) : NULL;
 	req->callback = callback;
 	req->userdata = userdata;
-	
+
 	if (!req->url) {
 		free(req->post_data);
 		free(req->content_type);
@@ -314,10 +321,11 @@ static void start_async_request(const char* url, const char* post_data,
 			response->http_status = -1;
 			response->error = strdup("Memory allocation failed");
 		}
-		if (callback) callback(response, userdata);
+		if (callback)
+			callback(response, userdata);
 		return;
 	}
-	
+
 	// Create thread
 	SDL_Thread* thread = SDL_CreateThread(async_request_thread, "HTTPRequest", req);
 	if (!thread) {
@@ -330,10 +338,11 @@ static void start_async_request(const char* url, const char* post_data,
 			response->http_status = -1;
 			response->error = strdup("Failed to create thread");
 		}
-		if (callback) callback(response, userdata);
+		if (callback)
+			callback(response, userdata);
 		return;
 	}
-	
+
 	// Detach thread - it will clean itself up
 	SDL_DetachThread(thread);
 }
@@ -355,25 +364,28 @@ void HTTP_getAsync(const char* url, HTTP_Callback callback, void* userdata) {
 }
 
 void HTTP_postAsync(const char* url, const char* post_data, const char* content_type,
-                    HTTP_Callback callback, void* userdata) {
+					HTTP_Callback callback, void* userdata) {
 	start_async_request(url, post_data, content_type, callback, userdata);
 }
 
 void HTTP_freeResponse(HTTP_Response* response) {
-	if (!response) return;
+	if (!response)
+		return;
 	free(response->data);
 	free(response->error);
 	free(response);
 }
 
 char* HTTP_urlEncode(const char* str) {
-	if (!str) return NULL;
-	
+	if (!str)
+		return NULL;
+
 	// Count required size (worst case: every char becomes %XX)
 	size_t len = strlen(str);
 	char* encoded = malloc(len * 3 + 1);
-	if (!encoded) return NULL;
-	
+	if (!encoded)
+		return NULL;
+
 	char* p = encoded;
 	for (size_t i = 0; i < len; i++) {
 		unsigned char c = (unsigned char)str[i];
@@ -387,7 +399,7 @@ char* HTTP_urlEncode(const char* str) {
 		}
 	}
 	*p = '\0';
-	
+
 	return encoded;
 }
 

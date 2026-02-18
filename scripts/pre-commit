@@ -1,0 +1,36 @@
+#!/usr/bin/env bash
+#
+# Pre-commit hook: ensures staged C/H files are clang-format compliant.
+# Install via: ./scripts/install-hooks.sh
+
+set -euo pipefail
+
+# Get staged .c and .h files (only added/modified, not deleted)
+STAGED_FILES=$(git diff --cached --name-only --diff-filter=ACM -- '*.c' '*.h')
+
+if [ -z "$STAGED_FILES" ]; then
+	exit 0
+fi
+
+FAILED=0
+
+for file in $STAGED_FILES; do
+	if ! clang-format --dry-run --Werror "$file" 2>/dev/null; then
+		if [ "$FAILED" -eq 0 ]; then
+			echo "clang-format check failed for the following files:"
+			echo ""
+		fi
+		FAILED=1
+		echo "  $file"
+	fi
+done
+
+if [ "$FAILED" -ne 0 ]; then
+	echo ""
+	echo "To fix, run:"
+	echo "  clang-format -i <file>..."
+	echo ""
+	echo "Or format all staged files at once:"
+	echo "  git diff --cached --name-only --diff-filter=ACM -- '*.c' '*.h' | xargs clang-format -i"
+	exit 1
+fi

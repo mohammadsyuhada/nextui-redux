@@ -14,8 +14,8 @@
 
 // Logging macros using NextUI's LOG_* infrastructure
 #define BADGE_LOG_DEBUG(fmt, ...) LOG_debug("[RA_BADGES] " fmt, ##__VA_ARGS__)
-#define BADGE_LOG_INFO(fmt, ...)  LOG_info("[RA_BADGES] " fmt, ##__VA_ARGS__)
-#define BADGE_LOG_WARN(fmt, ...)  LOG_warn("[RA_BADGES] " fmt, ##__VA_ARGS__)
+#define BADGE_LOG_INFO(fmt, ...) LOG_info("[RA_BADGES] " fmt, ##__VA_ARGS__)
+#define BADGE_LOG_WARN(fmt, ...) LOG_warn("[RA_BADGES] " fmt, ##__VA_ARGS__)
 #define BADGE_LOG_ERROR(fmt, ...) LOG_error("[RA_BADGES] " fmt, ##__VA_ARGS__)
 
 /*****************************************************************************
@@ -38,7 +38,7 @@ typedef struct {
 	bool locked;
 	RA_BadgeState state;
 	SDL_Surface* surface;
-	SDL_Surface* surface_scaled;  // Pre-scaled for notifications
+	SDL_Surface* surface_scaled; // Pre-scaled for notifications
 } BadgeCacheEntry;
 
 /*****************************************************************************
@@ -81,34 +81,34 @@ static BadgeCacheEntry* find_or_create_entry(const char* badge_name, bool locked
 	// Search existing entries
 	for (int i = 0; i < badge_cache_count; i++) {
 		if (badge_cache[i].locked == locked &&
-		    strcmp(badge_cache[i].badge_name, badge_name) == 0) {
+			strcmp(badge_cache[i].badge_name, badge_name) == 0) {
 			return &badge_cache[i];
 		}
 	}
-	
+
 	// Create new entry if space available
 	if (badge_cache_count >= MAX_CACHED_BADGES) {
 		BADGE_LOG_WARN("Cache full, cannot add badge %s\n", badge_name);
 		return NULL;
 	}
-	
+
 	BadgeCacheEntry* entry = &badge_cache[badge_cache_count++];
 	memset(entry, 0, sizeof(BadgeCacheEntry));
 	strncpy(entry->badge_name, badge_name, MAX_BADGE_NAME - 1);
 	entry->locked = locked;
 	entry->state = RA_BADGE_STATE_UNKNOWN;
-	
+
 	return entry;
 }
 
 // Create cache directory if it doesn't exist
 static void ensure_cache_dir(void) {
 	char path[MAX_PATH];
-	
+
 	// Create .ra directory
 	snprintf(path, sizeof(path), SHARED_USERDATA_PATH "/.ra");
 	mkdir(path, 0755);
-	
+
 	// Create .ra/badges directory
 	mkdir(RA_BADGE_CACHE_DIR, 0755);
 }
@@ -126,16 +126,16 @@ static bool save_to_cache(const char* path, const char* data, size_t size) {
 		BADGE_LOG_ERROR("Failed to open cache file for writing: %s\n", path);
 		return false;
 	}
-	
+
 	size_t written = fwrite(data, 1, size, f);
 	fclose(f);
-	
+
 	if (written != size) {
 		BADGE_LOG_ERROR("Failed to write cache file: %s\n", path);
 		unlink(path);
 		return false;
 	}
-	
+
 	return true;
 }
 
@@ -151,32 +151,32 @@ static SDL_Surface* load_from_cache(const char* path) {
 
 // Scale a surface to target size using SDL_BlitScaled for proper format handling
 static SDL_Surface* scale_surface(SDL_Surface* src, int target_size) {
-	if (!src) return NULL;
-	
+	if (!src)
+		return NULL;
+
 	// Calculate scale factor to fit in target_size x target_size
 	float scale_x = (float)target_size / src->w;
 	float scale_y = (float)target_size / src->h;
 	float scale = (scale_x < scale_y) ? scale_x : scale_y;
-	
+
 	int new_w = (int)(src->w * scale);
 	int new_h = (int)(src->h * scale);
-	
+
 	// Create scaled surface with alpha support
 	SDL_Surface* scaled = SDL_CreateRGBSurfaceWithFormat(
-		0, new_w, new_h, 32, SDL_PIXELFORMAT_RGBA32
-	);
+		0, new_w, new_h, 32, SDL_PIXELFORMAT_RGBA32);
 	if (!scaled) {
 		return NULL;
 	}
-	
+
 	// Clear to transparent
 	SDL_FillRect(scaled, NULL, 0);
-	
+
 	// Use SDL_BlitScaled which handles pixel format conversion properly
 	SDL_SetSurfaceBlendMode(src, SDL_BLENDMODE_NONE);
 	SDL_Rect dst_rect = {0, 0, new_w, new_h};
 	SDL_BlitScaled(src, NULL, scaled, &dst_rect);
-	
+
 	return scaled;
 }
 
@@ -200,59 +200,62 @@ static void queue_download(const char* badge_name, bool locked) {
 		BADGE_LOG_WARN("Download queue full, dropping badge %s\n", badge_name);
 		return;
 	}
-	
+
 	QueuedDownload* item = &download_queue.items[download_queue.tail];
 	strncpy(item->badge_name, badge_name, MAX_BADGE_NAME - 1);
 	item->badge_name[MAX_BADGE_NAME - 1] = '\0';
 	item->locked = locked;
-	
+
 	download_queue.tail = (download_queue.tail + 1) % MAX_QUEUED_DOWNLOADS;
 	download_queue.count++;
 }
 
 // Dequeue and start a download (must hold mutex)
 static bool dequeue_and_start_download(void) {
-	if (download_queue.count == 0) return false;
-	
+	if (download_queue.count == 0)
+		return false;
+
 	QueuedDownload* item = &download_queue.items[download_queue.head];
 	download_queue.head = (download_queue.head + 1) % MAX_QUEUED_DOWNLOADS;
 	download_queue.count--;
-	
+
 	// Get entry and check if still needs download
 	BadgeCacheEntry* entry = find_or_create_entry(item->badge_name, item->locked);
-	if (!entry) return false;
-	
+	if (!entry)
+		return false;
+
 	// Skip if already cached (might have been cached while queued)
 	if (entry->state == RA_BADGE_STATE_CACHED) {
 		return false;
 	}
-	
+
 	// Build URL and cache path
 	char url[512];
 	char cache_path[MAX_PATH];
 	RA_Badges_getUrl(item->badge_name, item->locked, url, sizeof(url));
 	RA_Badges_getCachePath(item->badge_name, item->locked, cache_path, sizeof(cache_path));
-	
+
 	// Check if already cached on disk
 	if (cache_file_exists(cache_path)) {
 		entry->state = RA_BADGE_STATE_CACHED;
 		return false;
 	}
-	
+
 	// Start download
 	DownloadContext* ctx = (DownloadContext*)malloc(sizeof(DownloadContext));
-	if (!ctx) return false;
-	
+	if (!ctx)
+		return false;
+
 	strncpy(ctx->badge_name, item->badge_name, MAX_BADGE_NAME - 1);
 	ctx->badge_name[MAX_BADGE_NAME - 1] = '\0';
 	ctx->locked = item->locked;
 	strncpy(ctx->cache_path, cache_path, MAX_PATH - 1);
 	ctx->cache_path[MAX_PATH - 1] = '\0';
-	
+
 	entry->state = RA_BADGE_STATE_DOWNLOADING;
 	download_queue.active++;
 	pending_downloads++;
-	
+
 	HTTP_getAsync(url, badge_download_callback, ctx);
 	return true;
 }
@@ -269,41 +272,44 @@ static void process_download_queue(void) {
 
 static void badge_download_callback(HTTP_Response* response, void* userdata) {
 	DownloadContext* ctx = (DownloadContext*)userdata;
-	
+
 	bool success = false;
-	
+
 	// Just save to disk - don't load into memory during prefetch
 	// Images will be loaded lazily when actually needed for display
 	if (response && response->data && response->http_status == 200 && !response->error) {
 		success = save_to_cache(ctx->cache_path, response->data, response->size);
 		if (!success) {
 			BADGE_LOG_WARN("Failed to save badge %s%s to cache\n",
-			          ctx->badge_name, ctx->locked ? "_lock" : "");
+						   ctx->badge_name, ctx->locked ? "_lock" : "");
 		}
 	} else {
 		BADGE_LOG_WARN("Failed to download badge %s%s: %s\n",
-		          ctx->badge_name, ctx->locked ? "_lock" : "",
-		          response && response->error ? response->error : "HTTP error");
+					   ctx->badge_name, ctx->locked ? "_lock" : "",
+					   response && response->error ? response->error : "HTTP error");
 	}
-	
+
 	// Only hold mutex briefly to update state
-	if (badge_mutex) SDL_LockMutex(badge_mutex);
-	
+	if (badge_mutex)
+		SDL_LockMutex(badge_mutex);
+
 	download_queue.active--;
-	if (download_queue.active < 0) download_queue.active = 0;
-	
+	if (download_queue.active < 0)
+		download_queue.active = 0;
+
 	pending_downloads--;
-	if (pending_downloads < 0) pending_downloads = 0;
-	
+	if (pending_downloads < 0)
+		pending_downloads = 0;
+
 	BadgeCacheEntry* entry = find_or_create_entry(ctx->badge_name, ctx->locked);
 	if (entry) {
 		// Mark as cached (on disk) - surfaces will be loaded lazily
 		entry->state = success ? RA_BADGE_STATE_CACHED : RA_BADGE_STATE_FAILED;
 	}
-	
+
 	// Start next queued download(s)
 	process_download_queue();
-	
+
 	// Check if we should hide the notification
 	// Hide when all downloads complete, or when notification timeout is reached
 	uint32_t elapsed = SDL_GetTicks() - notification_start_time;
@@ -313,9 +319,10 @@ static void badge_download_callback(HTTP_Response* response, void* userdata) {
 		// Force hide after notification timeout elapses, even if downloads aren't complete
 		Notification_hideProgressIndicator();
 	}
-	
-	if (badge_mutex) SDL_UnlockMutex(badge_mutex);
-	
+
+	if (badge_mutex)
+		SDL_UnlockMutex(badge_mutex);
+
 	if (response) {
 		HTTP_freeResponse(response);
 	}
@@ -324,17 +331,19 @@ static void badge_download_callback(HTTP_Response* response, void* userdata) {
 
 // Request a badge download - queues if at concurrency limit
 static void start_download(const char* badge_name, bool locked) {
-	if (!initialized) return;
-	
+	if (!initialized)
+		return;
+
 	BadgeCacheEntry* entry = find_or_create_entry(badge_name, locked);
-	if (!entry) return;
-	
+	if (!entry)
+		return;
+
 	// Check if already downloading or cached
 	if (entry->state == RA_BADGE_STATE_DOWNLOADING ||
-	    entry->state == RA_BADGE_STATE_CACHED) {
+		entry->state == RA_BADGE_STATE_CACHED) {
 		return;
 	}
-	
+
 	// Check if already cached on disk
 	char cache_path[MAX_PATH];
 	RA_Badges_getCachePath(badge_name, locked, cache_path, sizeof(cache_path));
@@ -342,7 +351,7 @@ static void start_download(const char* badge_name, bool locked) {
 		entry->state = RA_BADGE_STATE_CACHED;
 		return;
 	}
-	
+
 	// Queue the download - state will be set when download actually starts
 	queue_download(badge_name, locked);
 }
@@ -352,8 +361,9 @@ static void start_download(const char* badge_name, bool locked) {
  *****************************************************************************/
 
 void RA_Badges_init(void) {
-	if (initialized) return;
-	
+	if (initialized)
+		return;
+
 	badge_mutex = SDL_CreateMutex();
 	badge_cache_count = 0;
 	pending_downloads = 0;
@@ -362,30 +372,33 @@ void RA_Badges_init(void) {
 	download_queue.count = 0;
 	download_queue.active = 0;
 	memset(badge_cache, 0, sizeof(badge_cache));
-	
+
 	ensure_cache_dir();
-	
+
 	initialized = true;
 }
 
 void RA_Badges_quit(void) {
-	if (!initialized) return;
-	
+	if (!initialized)
+		return;
+
 	RA_Badges_clearMemory();
-	
+
 	if (badge_mutex) {
 		SDL_DestroyMutex(badge_mutex);
 		badge_mutex = NULL;
 	}
-	
+
 	initialized = false;
 }
 
 void RA_Badges_clearMemory(void) {
-	if (!initialized) return;
-	
-	if (badge_mutex) SDL_LockMutex(badge_mutex);
-	
+	if (!initialized)
+		return;
+
+	if (badge_mutex)
+		SDL_LockMutex(badge_mutex);
+
 	for (int i = 0; i < badge_cache_count; i++) {
 		if (badge_cache[i].surface) {
 			SDL_FreeSurface(badge_cache[i].surface);
@@ -397,15 +410,18 @@ void RA_Badges_clearMemory(void) {
 		}
 	}
 	badge_cache_count = 0;
-	
-	if (badge_mutex) SDL_UnlockMutex(badge_mutex);
+
+	if (badge_mutex)
+		SDL_UnlockMutex(badge_mutex);
 }
 
 void RA_Badges_prefetch(const char** badge_names, size_t count) {
-	if (!initialized) return;
-	
-	if (badge_mutex) SDL_LockMutex(badge_mutex);
-	
+	if (!initialized)
+		return;
+
+	if (badge_mutex)
+		SDL_LockMutex(badge_mutex);
+
 	for (size_t i = 0; i < count; i++) {
 		if (badge_names[i] && badge_names[i][0]) {
 			// Queue both locked and unlocked versions
@@ -413,37 +429,43 @@ void RA_Badges_prefetch(const char** badge_names, size_t count) {
 			start_download(badge_names[i], true);
 		}
 	}
-	
+
 	// Show progress indicator if downloads were queued
 	if (download_queue.count > 0) {
 		Notification_setProgressIndicatorPersistent(true);
 		Notification_showProgressIndicator("Loading achievement badges...", "", NULL);
 		notification_start_time = SDL_GetTicks();
-		
+
 		// Start processing the queue (up to MAX_CONCURRENT_DOWNLOADS)
 		process_download_queue();
 	}
-	
-	if (badge_mutex) SDL_UnlockMutex(badge_mutex);
+
+	if (badge_mutex)
+		SDL_UnlockMutex(badge_mutex);
 }
 
 void RA_Badges_prefetchOne(const char* badge_name, bool locked) {
-	if (!initialized || !badge_name || !badge_name[0]) return;
-	
-	if (badge_mutex) SDL_LockMutex(badge_mutex);
+	if (!initialized || !badge_name || !badge_name[0])
+		return;
+
+	if (badge_mutex)
+		SDL_LockMutex(badge_mutex);
 	start_download(badge_name, locked);
 	process_download_queue();
-	if (badge_mutex) SDL_UnlockMutex(badge_mutex);
+	if (badge_mutex)
+		SDL_UnlockMutex(badge_mutex);
 }
 
 SDL_Surface* RA_Badges_get(const char* badge_name, bool locked) {
-	if (!initialized || !badge_name || !badge_name[0]) return NULL;
-	
-	if (badge_mutex) SDL_LockMutex(badge_mutex);
-	
+	if (!initialized || !badge_name || !badge_name[0])
+		return NULL;
+
+	if (badge_mutex)
+		SDL_LockMutex(badge_mutex);
+
 	BadgeCacheEntry* entry = find_or_create_entry(badge_name, locked);
 	SDL_Surface* result = NULL;
-	
+
 	if (entry) {
 		if (entry->state == RA_BADGE_STATE_CACHED) {
 			// Lazy load from disk if not in memory
@@ -461,20 +483,23 @@ SDL_Surface* RA_Badges_get(const char* badge_name, bool locked) {
 			start_download(badge_name, locked);
 		}
 	}
-	
-	if (badge_mutex) SDL_UnlockMutex(badge_mutex);
-	
+
+	if (badge_mutex)
+		SDL_UnlockMutex(badge_mutex);
+
 	return result;
 }
 
 SDL_Surface* RA_Badges_getNotificationSize(const char* badge_name, bool locked) {
-	if (!initialized || !badge_name || !badge_name[0]) return NULL;
-	
-	if (badge_mutex) SDL_LockMutex(badge_mutex);
-	
+	if (!initialized || !badge_name || !badge_name[0])
+		return NULL;
+
+	if (badge_mutex)
+		SDL_LockMutex(badge_mutex);
+
 	BadgeCacheEntry* entry = find_or_create_entry(badge_name, locked);
 	SDL_Surface* result = NULL;
-	
+
 	if (entry) {
 		if (entry->state == RA_BADGE_STATE_CACHED) {
 			// Lazy load from disk if not in memory
@@ -492,39 +517,43 @@ SDL_Surface* RA_Badges_getNotificationSize(const char* badge_name, bool locked) 
 			start_download(badge_name, locked);
 		}
 	}
-	
-	if (badge_mutex) SDL_UnlockMutex(badge_mutex);
-	
+
+	if (badge_mutex)
+		SDL_UnlockMutex(badge_mutex);
+
 	return result;
 }
 
 RA_BadgeState RA_Badges_getState(const char* badge_name, bool locked) {
-	if (!initialized || !badge_name || !badge_name[0]) return RA_BADGE_STATE_UNKNOWN;
-	
-	if (badge_mutex) SDL_LockMutex(badge_mutex);
-	
+	if (!initialized || !badge_name || !badge_name[0])
+		return RA_BADGE_STATE_UNKNOWN;
+
+	if (badge_mutex)
+		SDL_LockMutex(badge_mutex);
+
 	RA_BadgeState state = RA_BADGE_STATE_UNKNOWN;
-	
+
 	for (int i = 0; i < badge_cache_count; i++) {
 		if (badge_cache[i].locked == locked &&
-		    strcmp(badge_cache[i].badge_name, badge_name) == 0) {
+			strcmp(badge_cache[i].badge_name, badge_name) == 0) {
 			state = badge_cache[i].state;
 			break;
 		}
 	}
-	
-	if (badge_mutex) SDL_UnlockMutex(badge_mutex);
-	
+
+	if (badge_mutex)
+		SDL_UnlockMutex(badge_mutex);
+
 	return state;
 }
 
 void RA_Badges_getCachePath(const char* badge_name, bool locked, char* buffer, size_t buffer_size) {
 	if (locked) {
-		snprintf(buffer, buffer_size, "%s/%s_lock.png", 
-		         RA_BADGE_CACHE_DIR, badge_name);
+		snprintf(buffer, buffer_size, "%s/%s_lock.png",
+				 RA_BADGE_CACHE_DIR, badge_name);
 	} else {
 		snprintf(buffer, buffer_size, "%s/%s.png",
-		         RA_BADGE_CACHE_DIR, badge_name);
+				 RA_BADGE_CACHE_DIR, badge_name);
 	}
 }
 

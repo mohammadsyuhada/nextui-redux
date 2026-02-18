@@ -32,7 +32,7 @@ typedef struct SettingsV4 {
 	int speaker;
 	int mute;
 	int unused[2];
-	int jack; 
+	int jack;
 } SettingsV4;
 
 // Current NextUI settings format
@@ -45,7 +45,7 @@ typedef struct SettingsV5 {
 	int mute;
 	int unused[2]; // for future use
 	// NOTE: doesn't really need to be persisted but still needs to be shared
-	int jack; 
+	int jack;
 } SettingsV5;
 
 
@@ -62,7 +62,7 @@ typedef struct SettingsV6 {
 	int exposure;
 	int unused[2]; // for future use
 	// NOTE: doesn't really need to be persisted but still needs to be shared
-	int jack; 
+	int jack;
 } SettingsV6;
 
 typedef struct SettingsV7 {
@@ -82,7 +82,7 @@ typedef struct SettingsV7 {
 	int mutedexposure;
 	int unused[2]; // for future use
 	// NOTE: doesn't really need to be persisted but still needs to be shared
-	int jack; 
+	int jack;
 } SettingsV7;
 
 typedef struct SettingsV8 {
@@ -103,7 +103,7 @@ typedef struct SettingsV8 {
 	int toggled_volume;
 	int unused[2]; // for future use
 	// NOTE: doesn't really need to be persisted but still needs to be shared
-	int jack; 
+	int jack;
 } SettingsV8;
 
 typedef struct SettingsV9 {
@@ -134,7 +134,7 @@ typedef struct SettingsV9 {
 	int turbo_r2;
 	int unused[2]; // for future use
 	// NOTE: doesn't really need to be persisted but still needs to be shared
-	int jack; 
+	int jack;
 } SettingsV9;
 
 // When incrementing SETTINGS_VERSION, update the Settings typedef and add
@@ -175,9 +175,9 @@ static char SettingsPath[256];
 
 ///////////////////////////////////////
 
-int peekVersion(const char *filename) {
+int peekVersion(const char* filename) {
 	int version = 0;
-	FILE *file = fopen(filename, "r");
+	FILE* file = fopen(filename, "r");
 	if (file) {
 		fread(&version, sizeof(int), 1, file);
 		fclose(file);
@@ -185,26 +185,25 @@ int peekVersion(const char *filename) {
 	return version;
 }
 
-void InitSettings(void){
+void InitSettings(void) {
 	// We are not really using them, but we should be able to debug them
 	sprintf(SettingsPath, "%s/msettings.bin", getenv("USERDATA_PATH"));
 	//sprintf(SettingsPath, "%s/msettings.bin", SDCARD_PATH "/.userdata");
 	msettings = (Settings*)malloc(sizeof(Settings));
-	
+
 	int version = peekVersion(SettingsPath);
-	if(version > 0) {
+	if (version > 0) {
 		// fopen file pointer
 		int fd = open(SettingsPath, O_RDONLY);
-		if(fd) {
+		if (fd) {
 			if (version == SETTINGS_VERSION) {
 				read(fd, msettings, sizeof(Settings));
-			}
-			else {
+			} else {
 				// initialize with defaults
 				memcpy(msettings, &DefaultSettings, sizeof(Settings));
-				
+
 				// overwrite with migrated data
-				if(version==8) {
+				if (version == 8) {
 					printf("Found settings v8.\n");
 					SettingsV8 old;
 					read(fd, &old, sizeof(SettingsV8));
@@ -216,7 +215,7 @@ void InitSettings(void){
 					msettings->toggled_contrast = old.toggled_contrast;
 					msettings->toggled_exposure = old.toggled_exposure;
 					msettings->toggled_saturation = old.toggled_saturation;
-					
+
 					msettings->saturation = old.saturation;
 					msettings->contrast = old.contrast;
 					msettings->exposure = old.exposure;
@@ -228,8 +227,7 @@ void InitSettings(void){
 					msettings->speaker = old.speaker;
 					msettings->mute = old.mute;
 					msettings->jack = old.jack;
-				}
-				else if(version==7) {
+				} else if (version == 7) {
 					printf("Found settings v7.\n");
 					SettingsV7 old;
 					read(fd, &old, sizeof(SettingsV7));
@@ -251,12 +249,11 @@ void InitSettings(void){
 					msettings->speaker = old.speaker;
 					msettings->mute = old.mute;
 					msettings->jack = old.jack;
-				}
-				else if(version==6) {
+				} else if (version == 6) {
 					printf("Found settings v6.\n");
 					SettingsV6 old;
 					read(fd, &old, sizeof(SettingsV6));
-					
+
 					msettings->saturation = old.saturation;
 					msettings->contrast = old.contrast;
 					msettings->exposure = old.exposure;
@@ -268,8 +265,7 @@ void InitSettings(void){
 					msettings->speaker = old.speaker;
 					msettings->mute = old.mute;
 					msettings->jack = old.jack;
-				}
-				else if(version==5) {
+				} else if (version == 5) {
 					printf("Found settings v5.\n");
 					SettingsV5 old;
 					read(fd, &old, sizeof(SettingsV5));
@@ -281,8 +277,7 @@ void InitSettings(void){
 					msettings->speaker = old.speaker;
 					msettings->mute = old.mute;
 					msettings->jack = old.jack;
-				}
-				else if(version==4) {
+				} else if (version == 4) {
 					printf("Found settings v4.\n");
 					SettingsV4 old;
 					read(fd, &old, sizeof(SettingsV4));
@@ -295,8 +290,7 @@ void InitSettings(void){
 					msettings->speaker = old.speaker;
 					msettings->mute = old.mute;
 					msettings->jack = old.jack;
-				}
-				else if(version==3) {
+				} else if (version == 3) {
 					printf("Found settings v3.\n");
 					SettingsV3 old;
 					read(fd, &old, sizeof(SettingsV3));
@@ -306,75 +300,116 @@ void InitSettings(void){
 					msettings->speaker = old.speaker;
 					msettings->mute = old.mute;
 					msettings->jack = old.jack;
-				}
-				else {
+				} else {
 					printf("Found unsupported settings version: %i.\n", version);
 				}
 			}
 
 			close(fd);
-		}
-		else {
+		} else {
 			printf("Unable to read settings, using defaults\n");
 			// load defaults
 			memcpy(msettings, &DefaultSettings, sizeof(Settings));
 		}
-	}
-	else {
+	} else {
 		printf("No settings found, using defaults\n");
 		// load defaults
 		memcpy(msettings, &DefaultSettings, sizeof(Settings));
 	}
 }
 static inline void SaveSettings(void) {
-	FILE *file = fopen(SettingsPath, "w");
+	FILE* file = fopen(SettingsPath, "w");
 	if (file) {
 		fwrite(msettings, sizeof(Settings), 1, file);
 		fclose(file);
 	}
 }
-void QuitSettings(void){
+void QuitSettings(void) {
 	SaveSettings();
 	// dealloc settings
 	free(msettings);
 	msettings = NULL;
 }
-int InitializedSettings(void){
+int InitializedSettings(void) {
 	return msettings != NULL;
 }
 
 // not implemented here
 
-int GetBrightness(void) { return 0; }
-int GetColortemp(void) { return 0; }
-int GetContrast(void) { return 0; }
-int GetSaturation(void) { return 0; }
-int GetExposure(void) { return 0; }
-int GetVolume(void) { return 0; }
+int GetBrightness(void) {
+	return 0;
+}
+int GetColortemp(void) {
+	return 0;
+}
+int GetContrast(void) {
+	return 0;
+}
+int GetSaturation(void) {
+	return 0;
+}
+int GetExposure(void) {
+	return 0;
+}
+int GetVolume(void) {
+	return 0;
+}
 
-int GetMutedBrightness(void) { return 0; }
-int GetMutedColortemp(void) { return 0; }
-int GetMutedContrast(void) { return 0; }
-int GetMutedSaturation(void) { return 0; }
-int GetMutedExposure(void) { return 0; }
-int GetMutedVolume(void) { return 0; }
-int GetMuteDisablesDpad(void) { return 0; }
-int GetMuteEmulatesJoystick(void) { return 0; }
-int GetMuteTurboA(void) { return 0; }
-int GetMuteTurboB(void) { return 0; }
-int GetMuteTurboX(void) { return 0; }
-int GetMuteTurboY(void) { return 0; }
-int GetMuteTurboL1(void) { return 0; }
-int GetMuteTurboL2(void) { return 0; }
-int GetMuteTurboR1(void) { return 0; }
-int GetMuteTurboR2(void) { return 0; }
+int GetMutedBrightness(void) {
+	return 0;
+}
+int GetMutedColortemp(void) {
+	return 0;
+}
+int GetMutedContrast(void) {
+	return 0;
+}
+int GetMutedSaturation(void) {
+	return 0;
+}
+int GetMutedExposure(void) {
+	return 0;
+}
+int GetMutedVolume(void) {
+	return 0;
+}
+int GetMuteDisablesDpad(void) {
+	return 0;
+}
+int GetMuteEmulatesJoystick(void) {
+	return 0;
+}
+int GetMuteTurboA(void) {
+	return 0;
+}
+int GetMuteTurboB(void) {
+	return 0;
+}
+int GetMuteTurboX(void) {
+	return 0;
+}
+int GetMuteTurboY(void) {
+	return 0;
+}
+int GetMuteTurboL1(void) {
+	return 0;
+}
+int GetMuteTurboL2(void) {
+	return 0;
+}
+int GetMuteTurboR1(void) {
+	return 0;
+}
+int GetMuteTurboR2(void) {
+	return 0;
+}
 
-void SetMutedBrightness(int value){}
-void SetMutedColortemp(int value){}
-void SetMutedContrast(int value){}
-void SetMutedSaturation(int value){}
-void SetMutedExposure(int value){}
-void SetMutedVolume(int value){}
+void SetMutedBrightness(int value) {}
+void SetMutedColortemp(int value) {}
+void SetMutedContrast(int value) {}
+void SetMutedSaturation(int value) {}
+void SetMutedExposure(int value) {}
+void SetMutedVolume(int value) {}
 void SetMuteDisablesDpad(int value) {}
 void SetMuteEmulatesJoystick(int value) {}
 void SetMuteTurboA(int value) {}
@@ -387,7 +422,7 @@ void SetMuteTurboR1(int value) {}
 void SetMuteTurboR2(int value) {}
 
 void SetRawBrightness(int value) {}
-void SetRawVolume(int value){}
+void SetRawVolume(int value) {}
 
 void SetBrightness(int value) {}
 void SetColortemp(int value) {}
@@ -396,13 +431,21 @@ void SetSaturation(int value) {}
 void SetExposure(int value) {}
 void SetVolume(int value) {}
 
-int GetJack(void) { return 0; }
+int GetJack(void) {
+	return 0;
+}
 void SetJack(int value) {}
 
-int GetAudioSink(void) { return 0; }
+int GetAudioSink(void) {
+	return 0;
+}
 void SetAudioSink(int value) {}
 
-int GetHDMI(void) { return 0; }
+int GetHDMI(void) {
+	return 0;
+}
 void SetHDMI(int value) {}
 
-int GetMute(void) { return 0; }
+int GetMute(void) {
+	return 0;
+}
