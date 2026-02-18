@@ -180,8 +180,7 @@ compile-commands:
 	@echo '[' > compile_commands.json
 	@first=1; \
 	git ls-files '*.c' | \
-		grep -v '_unmaintained' | \
-		grep -v 'cores/src' | \
+	grep -v 'cores/src' | \
 		grep -v 'libretro-common' | \
 		grep -v 'libchdr' | \
 		grep -v 'rcheevos/src' | \
