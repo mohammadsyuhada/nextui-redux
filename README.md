@@ -30,7 +30,7 @@ It is a deliberate divergence — feature-driven and structure-focused.
 Changes shipped in this fork:
 
 - Game art fallback for the game switcher
-- Shortcut to main menu for faster navigation
+- Tool/Game shortcut to main menu for faster access
 
 Ongoing focus areas:
 
@@ -45,6 +45,13 @@ This project is a derivative of [LoveRetro/NextUI](https://github.com/LoveRetro/
 
 Upstream changes may be merged selectively.
 Architectural decisions here prioritize clarity and maintainability over strict parity.
+
+## Credits
+
+- All contributors in [LoveRetro/NextUI](https://github.com/LoveRetro/NextUI)
+- [KrutzOtrem](https://github.com/KrutzOtrem/Trimui-Brick-Overlays) for the overlays
+- [timbueno](https://github.com/timbueno/ArtBookNextUI.theme) for the Artbook theme
+- [anthonycaccese](https://github.com/anthonycaccese/art-book-next-es-de) for the Artbook artwork
 
 ## License
 
