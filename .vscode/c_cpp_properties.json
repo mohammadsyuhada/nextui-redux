@@ -3,35 +3,54 @@
         {
             "name": "Mac",
             "includePath": [
-                "${workspaceFolder}/**",
-                "/opt/homebrew/include/",
-                "${workspaceFolder}/workspace/all/common"
+                "${workspaceFolder}/workspace/all/common",
+                "${workspaceFolder}/workspace/all/nextui",
+                "${workspaceFolder}/workspace/all/minarch",
+                "${workspaceFolder}/workspace/all/minarch/libretro-common/include",
+                "${workspaceFolder}/workspace/tg5040/platform",
+                "${workspaceFolder}/workspace/tg5050/platform",
+                "${workspaceFolder}/workspace/desktop/platform",
+                "${workspaceFolder}/workspace/tg5040/libmsettings",
+                "${workspaceFolder}/workspace/tg5050/libmsettings",
+                "${workspaceFolder}/workspace/desktop/libmsettings",
+                "/opt/homebrew/include"
             ],
-            "defines": [],
+            "defines": [
+                "USE_SDL2",
+                "USE_GLES",
+                "GL_GLEXT_PROTOTYPES",
+                "PLATFORM=\"tg5040\""
+            ],
             "compilerPath": "/usr/bin/clang",
-            "cStandard": "c17",
+            "cStandard": "gnu99",
             "cppStandard": "c++17",
-            "intelliSenseMode": "macos-clang-arm64",
-            "configurationProvider": "ms-vscode.makefile-tools",
-            "compilerArgs": [
-                "-DUSE_SDL2"
-            ]
+            "intelliSenseMode": "macos-clang-arm64"
         },
         {
             "name": "Linux",
             "includePath": [
-                "${workspaceFolder}/**",
-                "${workspaceFolder}/workspace/all/common"
+                "${workspaceFolder}/workspace/all/common",
+                "${workspaceFolder}/workspace/all/nextui",
+                "${workspaceFolder}/workspace/all/minarch",
+                "${workspaceFolder}/workspace/all/minarch/libretro-common/include",
+                "${workspaceFolder}/workspace/tg5040/platform",
+                "${workspaceFolder}/workspace/tg5050/platform",
+                "${workspaceFolder}/workspace/desktop/platform",
+                "${workspaceFolder}/workspace/tg5040/libmsettings",
+                "${workspaceFolder}/workspace/tg5050/libmsettings",
+                "${workspaceFolder}/workspace/desktop/libmsettings",
+                "/usr/include"
             ],
-            "defines": [],
+            "defines": [
+                "USE_SDL2",
+                "USE_GLES",
+                "GL_GLEXT_PROTOTYPES",
+                "PLATFORM=\"tg5040\""
+            ],
             "compilerPath": "/usr/bin/gcc",
-            "cStandard": "c17",
+            "cStandard": "gnu99",
             "cppStandard": "c++17",
-            "intelliSenseMode":"gcc-arm64",
-            "configurationProvider": "ms-vscode.makefile-tools",
-            "compilerArgs": [
-                "-DUSE_SDL2"
-            ]
+            "intelliSenseMode": "gcc-arm64"
         }
     ],
     "version": 4

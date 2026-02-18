@@ -1,28 +1,5 @@
 CompileFlags:
-  Add:
-    # Language standard
-    - "-std=gnu99"
-
-    # Platform defines (desktop)
-    - "-DPLATFORM=\"desktop\""
-    - "-DUSE_SDL2"
-    - "-DUSE_GL"
-    - "-DGL_GLEXT_PROTOTYPES"
-    - "-DGL_SILENCE_DEPRECATION"
-    - "-D_FORTIFY_SOURCE=0"
-
-    # SDL2 (Homebrew)
-    - "-I/opt/homebrew/include/SDL2"
-    - "-D_THREAD_SAFE"
-
-    # Project include paths
-    - "-Iworkspace/all/common"
-    - "-Iworkspace/all/nextui"
-    - "-Iworkspace/desktop/platform"
-    - "-Iworkspace/desktop/libmsettings"
-
   Remove:
-    # Strip flags clangd can't handle
     - "-mcpu=*"
     - "-flto*"
     - "-Ofast"

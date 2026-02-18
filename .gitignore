@@ -1,4 +1,5 @@
 .DS_Store
+.cache
 *.o
 *.so
 *.elf
@@ -41,4 +42,5 @@ audiomon.elf
 
 workspace/hash.txt
 workspace/readmes
+compile_commands.json
 BUILD.md

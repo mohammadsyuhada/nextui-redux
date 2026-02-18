@@ -111,7 +111,8 @@
     "stop_token": "cpp",
     "cfenv": "cpp",
     "wmg_debug.h": "c",
-    "libretro.h": "c"
+    "libretro.h": "c",
     "dirent.h": "c"
   },
+  "C_Cpp.intelliSenseEngine": "disabled"
 }

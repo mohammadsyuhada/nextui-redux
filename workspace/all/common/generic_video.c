@@ -553,12 +553,11 @@ SDL_Surface* PLAT_initVideo(void) {
 		LOG_info("- %s\n", SDL_GetPixelFormatName(info.texture_formats[i]));
 	}
 
-	if(strcmp("Desktop", PLAT_getModel()) == 0) {
+	if (strcmp("Desktop", PLAT_getModel()) == 0) {
 		SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 4);
 		SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 1);
 		SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_CORE);
-	}
-	else {
+	} else {
 		SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 3);
 		SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 2);
 		SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_ES);
