@@ -1604,7 +1604,8 @@ void GFX_blitMessage(TTF_Font* font, char* msg, SDL_Surface* dst, SDL_Rect* dst_
 	if (!dst_rect)
 		dst_rect = &(SDL_Rect){0, 0, dst->w, dst->h};
 
-	// LOG_info("GFX_blitMessage: %p (%ix%i)", dst, dst_rect->w,dst_rect->h);
+	if (dst_rect->w <= 0 || dst_rect->h <= 0)
+		return;
 
 	SDL_Surface* text;
 #define TEXT_BOX_MAX_ROWS 16
@@ -3355,10 +3356,6 @@ void PWR_powerOff(int reboot) {
 		} else {
 			msg = exists(AUTO_RESUME_PATH) ? (char*)"Quicksave created,\npower off now" : (char*)"Power off now";
 		}
-
-		// LOG_info("PWR_powerOff %s (%ix%i)\n", gfx.screen, gfx.screen->w, gfx.screen->h);
-
-		// TODO: for some reason screen's dimensions end up being 0x0 in GFX_blitMessage...
 
 		PLAT_clearLayers(0);
 		PLAT_clearAll();

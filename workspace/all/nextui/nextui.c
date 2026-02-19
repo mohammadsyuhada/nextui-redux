@@ -646,8 +646,6 @@ int main(int argc, char* argv[]) {
 					}
 
 				} else {
-					// TODO: for some reason screen's dimensions end up being 0x0 in
-					// GFX_blitMessage...
 					UI_renderCenteredMessage(screen, "Empty folder");
 				}
 

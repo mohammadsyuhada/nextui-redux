@@ -159,8 +159,6 @@ int autoResume(void) {
 	if (!exists(emu_path))
 		return 0;
 
-	// putFile(LAST_PATH, FAUX_RECENT_PATH); // saveLast() will crash here because top is NULL
-
 	char* gametimectl_argv[] = {"gametimectl.elf", "start", sd_path, NULL};
 	runCommand("gametimectl.elf", gametimectl_argv);
 
@@ -522,7 +520,7 @@ void toggleQuick(Entry* self) {
 }
 
 void Entry_open(Entry* self) {
-	Recents_setAlias(self->name); // yiiikes
+	Recents_setAlias(self->name);
 	if (self->type == ENTRY_ROM) {
 		startgame = true;
 		char* last = NULL;
