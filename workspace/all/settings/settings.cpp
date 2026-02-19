@@ -44,7 +44,7 @@ struct Context
 {
     MenuList *menu;
     SDL_Surface *screen;
-    int dirty;
+    bool dirty;
     int show_setting;
 };
 
@@ -249,7 +249,7 @@ int main(int argc, char *argv[])
         PWR_setCPUSpeed(CPU_SPEED_MENU);
 
         Context ctx = {0};
-        ctx.dirty = 1;
+        ctx.dirty = true;
         ctx.show_setting = 0;
         ctx.screen = GFX_init(MODE_MAIN);
         PAD_init();
@@ -834,12 +834,12 @@ int main(int argc, char *argv[])
 
             int is_online = PWR_isOnline();
             if (was_online!=is_online) 
-                ctx.dirty = 1;
+                ctx.dirty = true;
             was_online = is_online;
 
             int has_bt = PLAT_btIsConnected();
             if (had_bt != has_bt)
-                ctx.dirty = 1;
+                ctx.dirty = true;
             had_bt = has_bt;
 
             if (ctx.dirty)

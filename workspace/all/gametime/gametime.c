@@ -333,7 +333,7 @@ int main(int argc, char* argv[]) {
 	int end = MIN(count, layout.items_per_page);
 	int visible_rows = end;
 
-	int dirty = 1;
+	bool dirty = true;
 	int show_setting = 0;
 	while (!quit) {
 		GFX_startFrame();
@@ -353,7 +353,7 @@ int main(int argc, char* argv[]) {
 					start -= 1;
 					end -= 1;
 				}
-				dirty = 1;
+				dirty = true;
 			} else if (PAD_justRepeated(BTN_DOWN)) {
 				selected += 1;
 				if (selected >= count) {
@@ -364,7 +364,7 @@ int main(int argc, char* argv[]) {
 					start += 1;
 					end += 1;
 				}
-				dirty = 1;
+				dirty = true;
 			} else if (PAD_justPressed(BTN_B)) {
 				quit = 1;
 			}
@@ -410,7 +410,7 @@ int main(int argc, char* argv[]) {
 			GFX_blitButtonGroup((char*[]){"B", "BACK", NULL}, 1, screen, 1);
 
 			GFX_flip(screen);
-			dirty = 0;
+			dirty = false;
 		} else
 			GFX_sync();
 	}

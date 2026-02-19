@@ -2,10 +2,11 @@
 #define QUICKMENU_H
 
 #include "sdl.h"
+#include <stdbool.h>
 
 typedef struct {
-	int dirty;
-	int folderbgchanged;
+	bool dirty;
+	bool folderbgchanged;
 	int screen;
 } QuickMenuResult;
 

@@ -27,7 +27,7 @@ void Launcher_setCleanupFunc(CleanupPoolFunc func) {
 void queueNext(char* cmd) {
 	LOG_info("cmd: %s\n", cmd);
 	putFile("/tmp/next", cmd);
-	quit = 1;
+	quit = true;
 }
 
 extern char** environ;
@@ -45,9 +45,9 @@ static int runCommand(const char* path, char* const argv[]) {
 
 void readyResumePath(char* rom_path, int type) {
 	char* tmp;
-	resume.can_resume = 0;
-	resume.has_preview = 0;
-	resume.has_boxart = 0;
+	resume.can_resume = false;
+	resume.has_preview = false;
+	resume.has_boxart = false;
 	char path[MAX_PATH];
 	strcpy(path, rom_path);
 
@@ -212,7 +212,7 @@ void openRom(char* path, char* last) {
 		char slot[16];
 		getFile(resume.slot_path, slot, 16);
 		putFile(RESUME_SLOT_PATH, slot);
-		resume.should_resume = 0;
+		resume.should_resume = false;
 
 		if (has_m3u) {
 			char rom_file[MAX_PATH];
@@ -241,7 +241,7 @@ void openRom(char* path, char* last) {
 			}
 		}
 	} else
-		putInt(RESUME_SLOT_PATH, 8); // resume hidden default state
+		putInt(RESUME_SLOT_PATH, RESUME_SLOT_DEFAULT);
 
 	char emu_path[MAX_PATH];
 	getEmuPath(emu_name, emu_path);
@@ -422,7 +422,7 @@ Array* pathToStack(const char* path) {
 void openDirectory(char* path, int auto_launch) {
 	char auto_path[MAX_PATH];
 	if (hasCue(path, auto_path) && auto_launch) {
-		startgame = 1;
+		startgame = true;
 		openRom(auto_path, path);
 		return;
 	}
@@ -436,7 +436,7 @@ void openDirectory(char* path, int auto_launch) {
 	if (exists(m3u_path) && auto_launch) {
 		auto_path[0] = '\0';
 		if (getFirstDisc(m3u_path, auto_path)) {
-			startgame = 1;
+			startgame = true;
 			openRom(auto_path, path);
 			return;
 		}
@@ -524,7 +524,7 @@ void toggleQuick(Entry* self) {
 void Entry_open(Entry* self) {
 	Recents_setAlias(self->name); // yiiikes
 	if (self->type == ENTRY_ROM) {
-		startgame = 1;
+		startgame = true;
 		char* last = NULL;
 		char last_path[MAX_PATH];
 		if (prefixMatch(COLLECTIONS_PATH, top->path)) {
@@ -541,7 +541,7 @@ void Entry_open(Entry* self) {
 		}
 		openRom(self->path, last);
 	} else if (self->type == ENTRY_PAK) {
-		startgame = 1;
+		startgame = true;
 		openPak(self->path);
 	} else if (self->type == ENTRY_DIR) {
 		openDirectory(self->path, 1);

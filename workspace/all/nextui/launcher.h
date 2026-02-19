@@ -4,19 +4,20 @@
 #include "defines.h"
 #include "types.h"
 #include "content.h"
+#include <stdbool.h>
 
 // Globals shared between launcher and main loop
 // Owned by nextui.c, accessed by launcher.c
 extern Directory* top;
 extern Array* stack;
-extern int quit;
-extern int startgame;
+extern bool quit;
+extern bool startgame;
 
 typedef struct {
-	int can_resume;
-	int should_resume;
-	int has_preview;
-	int has_boxart;
+	bool can_resume;
+	bool should_resume;
+	bool has_preview;
+	bool has_boxart;
 	char slot_path[MAX_PATH];
 	char preview_path[MAX_PATH];
 	char boxart_path[MAX_PATH];

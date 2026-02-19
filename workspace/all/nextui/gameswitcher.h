@@ -2,11 +2,12 @@
 #define GAMESWITCHER_H
 
 #include "sdl.h"
+#include <stdbool.h>
 
 typedef struct {
-	int dirty;
-	int folderbgchanged;
-	int startgame;
+	bool dirty;
+	bool folderbgchanged;
+	bool startgame;
 	int screen;
 	int gsanimdir;
 } GameSwitcherResult;

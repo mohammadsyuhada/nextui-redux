@@ -2,6 +2,7 @@
 #define RECENTS_H
 
 #include "types.h"
+#include <stdbool.h>
 
 ///////////////////////////////////////
 // Recent
@@ -9,7 +10,7 @@
 typedef struct Recent {
 	char* path; // NOTE: this is without the SDCARD_PATH prefix!
 	char* alias;
-	int available;
+	bool available;
 } Recent;
 
 // Requires hasEmu and hasM3u from content module

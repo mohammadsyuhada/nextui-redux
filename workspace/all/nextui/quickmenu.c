@@ -11,7 +11,12 @@
 static Array* quick;		// EntryArray
 static Array* quickActions; // EntryArray
 
-static int qm_row = 0;
+typedef enum {
+	QM_ROW_ITEMS = 0,
+	QM_ROW_TOGGLES = 1,
+} QuickMenuRow;
+
+static QuickMenuRow qm_row = QM_ROW_ITEMS;
 static int qm_col = 0;
 static int qm_slot = 0;
 static int qm_shift = 0;
@@ -30,7 +35,7 @@ void QuickMenu_quit(void) {
 }
 
 void QuickMenu_resetSelection(void) {
-	qm_row = 0;
+	qm_row = QM_ROW_ITEMS;
 	qm_col = 0;
 	qm_slot = 0;
 	qm_shift = 0;
@@ -40,15 +45,15 @@ QuickMenuResult QuickMenu_handleInput(unsigned long now) {
 	QuickMenuResult result = {0};
 	result.screen = SCREEN_QUICKMENU;
 
-	int qm_total = qm_row == 0 ? quick->count : quickActions->count;
+	int qm_total = qm_row == QM_ROW_ITEMS ? quick->count : quickActions->count;
 
 	if (PAD_justPressed(BTN_B) || PAD_tappedMenu(now)) {
 		result.screen = SCREEN_GAMELIST;
-		result.folderbgchanged = 1;
-		result.dirty = 1;
+		result.folderbgchanged = true;
+		result.dirty = true;
 	} else if (PAD_justReleased(BTN_A)) {
 		Entry* selected =
-			qm_row == 0 ? quick->items[qm_col] : quickActions->items[qm_col];
+			qm_row == QM_ROW_ITEMS ? quick->items[qm_col] : quickActions->items[qm_col];
 		if (selected->type != ENTRY_DIP) {
 			result.screen = SCREEN_GAMELIST;
 			// prevent restoring list state, game list screen currently isnt our
@@ -63,9 +68,9 @@ QuickMenuResult QuickMenu_handleInput(unsigned long now) {
 			restore.end = 0;
 		}
 		Entry_open(selected);
-		result.dirty = 1;
+		result.dirty = true;
 	} else if (PAD_justPressed(BTN_RIGHT)) {
-		if (qm_row == 0 && qm_total > qm_slots) {
+		if (qm_row == QM_ROW_ITEMS && qm_total > qm_slots) {
 			qm_col++;
 			if (qm_col >= qm_total) {
 				qm_col = 0;
@@ -84,9 +89,9 @@ QuickMenuResult QuickMenu_handleInput(unsigned long now) {
 				qm_col = 0;
 			}
 		}
-		result.dirty = 1;
+		result.dirty = true;
 	} else if (PAD_justPressed(BTN_LEFT)) {
-		if (qm_row == 0 && qm_total > qm_slots) {
+		if (qm_row == QM_ROW_ITEMS && qm_total > qm_slots) {
 			qm_col -= 1;
 			if (qm_col < 0) {
 				qm_col = qm_total - 1;
@@ -105,18 +110,18 @@ QuickMenuResult QuickMenu_handleInput(unsigned long now) {
 				qm_col = qm_total - 1;
 			}
 		}
-		result.dirty = 1;
+		result.dirty = true;
 	} else if (PAD_justPressed(BTN_DOWN)) {
-		if (qm_row == 0) {
-			qm_row = 1;
+		if (qm_row == QM_ROW_ITEMS) {
+			qm_row = QM_ROW_TOGGLES;
 			qm_col = 0;
-			result.dirty = 1;
+			result.dirty = true;
 		}
 	} else if (PAD_justPressed(BTN_UP)) {
-		if (qm_row == 1) {
-			qm_row = 0;
+		if (qm_row == QM_ROW_TOGGLES) {
+			qm_row = QM_ROW_ITEMS;
 			qm_col = qm_slot + qm_shift;
-			result.dirty = 1;
+			result.dirty = true;
 		}
 	}
 
@@ -131,10 +136,10 @@ void QuickMenu_render(int lastScreen, int show_setting, int ow,
 	}
 
 	Entry* current =
-		qm_row == 0 ? quick->items[qm_col] : quickActions->items[qm_col];
+		qm_row == QM_ROW_ITEMS ? quick->items[qm_col] : quickActions->items[qm_col];
 	char newBgPath[MAX_PATH];
 	char fallbackBgPath[MAX_PATH];
-	int show_off =
+	bool show_off =
 		(current->quickId == QUICK_WIFI && CFG_getWifi()) ||
 		(current->quickId == QUICK_BLUETOOTH && CFG_getBluetooth());
 	snprintf(newBgPath, sizeof(newBgPath),
@@ -202,7 +207,7 @@ void QuickMenu_render(int lastScreen, int show_setting, int ow,
 			uint32_t item_color = THEME_COLOR3;
 			uint32_t icon_color = THEME_COLOR4;
 
-			if (qm_row == 0 && qm_col == c) {
+			if (qm_row == QM_ROW_ITEMS && qm_col == c) {
 				text_color = uintToColour(THEME_COLOR5_255);
 				item_color = THEME_COLOR1;
 				icon_color = THEME_COLOR5;
@@ -257,7 +262,7 @@ void QuickMenu_render(int lastScreen, int show_setting, int ow,
 			uint32_t item_color = THEME_COLOR3;
 			uint32_t icon_color = THEME_COLOR4;
 
-			if (qm_row == 1 && qm_col == c) {
+			if (qm_row == QM_ROW_TOGGLES && qm_col == c) {
 				text_color = uintToColour(THEME_COLOR5_255);
 				item_color = THEME_COLOR1;
 				icon_color = THEME_COLOR5;

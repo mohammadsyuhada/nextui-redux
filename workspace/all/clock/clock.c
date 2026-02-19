@@ -155,7 +155,7 @@ int main(int argc, char* argv[]) {
 
 	int option_count = 7;
 
-	int dirty = 1;
+	bool dirty = true;
 	int show_setting = 0;
 	int was_online = PWR_isOnline();
 	int had_bt = PLAT_btIsConnected();
@@ -164,7 +164,7 @@ int main(int argc, char* argv[]) {
 		PAD_poll();
 
 		if (PAD_justRepeated(BTN_UP)) {
-			dirty = 1;
+			dirty = true;
 			switch (select_cursor) {
 			case CURSOR_YEAR:
 				year_selected++;
@@ -191,7 +191,7 @@ int main(int argc, char* argv[]) {
 				break;
 			}
 		} else if (PAD_justRepeated(BTN_DOWN)) {
-			dirty = 1;
+			dirty = true;
 			switch (select_cursor) {
 			case CURSOR_YEAR:
 				year_selected--;
@@ -218,12 +218,12 @@ int main(int argc, char* argv[]) {
 				break;
 			}
 		} else if (PAD_justRepeated(BTN_LEFT)) {
-			dirty = 1;
+			dirty = true;
 			select_cursor--;
 			if (select_cursor < 0)
 				select_cursor += option_count;
 		} else if (PAD_justRepeated(BTN_RIGHT)) {
-			dirty = 1;
+			dirty = true;
 			select_cursor++;
 			if (select_cursor >= option_count)
 				select_cursor -= option_count;
@@ -233,7 +233,7 @@ int main(int argc, char* argv[]) {
 		} else if (PAD_justPressed(BTN_B)) {
 			quit = 1;
 		} else if (PAD_justPressed(BTN_SELECT)) {
-			dirty = 1;
+			dirty = true;
 			show_24hour = !show_24hour;
 			option_count = (show_24hour ? CURSOR_SECOND : CURSOR_AMPM) + 1;
 			if (select_cursor >= option_count)
@@ -250,12 +250,12 @@ int main(int argc, char* argv[]) {
 
 		int is_online = PWR_isOnline();
 		if (was_online != is_online)
-			dirty = 1;
+			dirty = true;
 		was_online = is_online;
 
 		int has_bt = PLAT_btIsConnected();
 		if (had_bt != has_bt)
-			dirty = 1;
+			dirty = true;
 		had_bt = has_bt;
 
 		if (dirty) {
@@ -325,7 +325,7 @@ int main(int argc, char* argv[]) {
 			blitBar(x, y, (select_cursor == CURSOR_YEAR ? SCALE1(40) : (select_cursor == CURSOR_AMPM ? ampm_w : SCALE1(20))));
 
 			GFX_flip(screen);
-			dirty = 0;
+			dirty = false;
 		} else
 			GFX_sync();
 	}

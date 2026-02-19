@@ -128,13 +128,13 @@ void Recents_add(char* path, char* alias) {
 int Recents_load(void) {
 	LOG_info("hasRecents %s\n", RECENT_PATH);
 	int has = 0;
-	int changed = 0;
+	bool changed = false;
 	RecentArray_free(recents);
 	recents = Array_new();
 
 	Array* parent_paths = Array_new();
 	if (exists(CHANGE_DISC_PATH)) {
-		changed = 1;
+		changed = true;
 		char sd_path[MAX_PATH];
 		getFile(CHANGE_DISC_PATH, sd_path, MAX_PATH);
 		if (exists(sd_path)) {
@@ -180,11 +180,11 @@ int Recents_load(void) {
 			char sd_path[MAX_PATH];
 			snprintf(sd_path, sizeof(sd_path), "%s%s", SDCARD_PATH, path);
 			if (!exists(sd_path)) {
-				changed = 1;
+				changed = true;
 				continue;
 			}
 			if (recents->count >= MAX_RECENTS) {
-				changed = 1;
+				changed = true;
 				continue;
 			}
 			// this logic replaces an existing disc from a multi-disc game with the last used
@@ -197,16 +197,16 @@ int Recents_load(void) {
 					goto skip_m3u;
 				tmp[1] = '\0';
 
-				int found = 0;
+				bool found = false;
 				for (int i = 0; i < parent_paths->count; i++) {
 					char* parent = parent_paths->items[i];
 					if (prefixMatch(parent, parent_path)) {
-						found = 1;
+						found = true;
 						break;
 					}
 				}
 				if (found) {
-					changed = 1;
+					changed = true;
 					continue;
 				}
 

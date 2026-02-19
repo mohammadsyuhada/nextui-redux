@@ -356,6 +356,7 @@ int GFX_blitHardwareGroup(SDL_Surface* dst, int show_setting);
 void GFX_blitHardwareHints(SDL_Surface* dst, int show_setting);
 
 typedef enum {
+	INDICATOR_NONE = 0,
 	INDICATOR_BRIGHTNESS = 1,
 	INDICATOR_VOLUME = 2,
 	INDICATOR_COLORTEMP = 3,
@@ -511,7 +512,7 @@ void PWR_init(void);
 void PWR_quit(void);
 
 int PWR_ignoreSettingInput(int btn, int show_setting);
-void PWR_update(int* dirty, int* show_setting, PWR_callback_t before_sleep, PWR_callback_t after_sleep);
+void PWR_update(bool* dirty, int* show_setting, PWR_callback_t before_sleep, PWR_callback_t after_sleep);
 void PWR_updateFrequency(int secs, int updateWifi);
 
 void PWR_disablePowerOff(void);

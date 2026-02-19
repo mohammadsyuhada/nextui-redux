@@ -5,6 +5,12 @@
 
 #define MAX_SHORTCUTS 12
 
+typedef enum {
+	SHORTCUT_NONE = 0,
+	SHORTCUT_ADD = 1,
+	SHORTCUT_REMOVE = 2,
+} ShortcutAction;
+
 // Initialize shortcuts (call in Menu_init)
 void Shortcuts_init(void);
 
@@ -42,7 +48,6 @@ int Shortcuts_validate(void);
 // Returns pointer to static buffer, caller should copy if needed
 char* Shortcuts_getPakBasename(const char* path);
 
-// Handle confirmation action (1=add, 2=remove)
-void Shortcuts_confirmAction(int action, Entry* entry);
+void Shortcuts_confirmAction(ShortcutAction action, Entry* entry);
 
 #endif // SHORTCUTS_H

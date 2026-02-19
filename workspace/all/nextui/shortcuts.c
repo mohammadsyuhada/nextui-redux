@@ -86,7 +86,7 @@ static int loadShortcuts(void) {
 		ShortcutArray_free(shortcuts);
 	}
 	shortcuts = Array_new();
-	int removed_any = 0;
+	bool removed_any = false;
 
 	FILE* file = fopen(SHORTCUTS_PATH, "r");
 	if (file) {
@@ -112,7 +112,7 @@ static int loadShortcuts(void) {
 			if (exists(sd_path)) {
 				Array_push(shortcuts, Shortcut_new(path, name));
 			} else {
-				removed_any = 1;
+				removed_any = true;
 			}
 		}
 		fclose(file);
@@ -218,7 +218,7 @@ int Shortcuts_validate(void) {
 	if (!shortcuts)
 		return 0;
 
-	int needs_save = 0;
+	bool needs_save = false;
 	for (int i = shortcuts->count - 1; i >= 0; i--) {
 		Shortcut* shortcut = shortcuts->items[i];
 		char sd_path[MAX_PATH];
@@ -227,7 +227,7 @@ int Shortcuts_validate(void) {
 		if (!exists(sd_path)) {
 			Array_remove(shortcuts, shortcut);
 			Shortcut_free(shortcut);
-			needs_save = 1;
+			needs_save = true;
 		}
 	}
 
@@ -253,10 +253,10 @@ char* Shortcuts_getPakBasename(const char* path) {
 	return basename;
 }
 
-void Shortcuts_confirmAction(int action, Entry* entry) {
-	if (action == 1) {
+void Shortcuts_confirmAction(ShortcutAction action, Entry* entry) {
+	if (action == SHORTCUT_ADD) {
 		Shortcuts_add(entry);
-	} else if (action == 2) {
+	} else if (action == SHORTCUT_REMOVE) {
 		Shortcuts_remove(entry);
 	}
 }

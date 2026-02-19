@@ -211,7 +211,7 @@ int main(int argc, char* argv[]) {
 	int selected_setting = 0;
 	SDL_Event event;
 	int quit = 0;
-	int dirty = 1;
+	bool dirty = true;
 	int show_setting = 0; // 1=brightness,2=volume,3=colortemp
 	int was_online = PWR_isOnline();
 	int had_bt = PLAT_btIsConnected();
@@ -226,12 +226,12 @@ int main(int argc, char* argv[]) {
 
 		int is_online = PWR_isOnline();
 		if (was_online != is_online)
-			dirty = 1;
+			dirty = true;
 		was_online = is_online;
 
 		int has_bt = PLAT_btIsConnected();
 		if (had_bt != has_bt)
-			dirty = 1;
+			dirty = true;
 		had_bt = has_bt;
 
 		int numOfLights = 3;
@@ -242,19 +242,19 @@ int main(int argc, char* argv[]) {
 			quit = 1;
 		} else if (PAD_justPressed(BTN_DOWN)) {
 			selected_setting = (selected_setting + 1) % NUM_MAIN_OPTIONS;
-			dirty = 1;
+			dirty = true;
 		} else if (PAD_justPressed(BTN_UP)) {
 			selected_setting = (selected_setting - 1 + NUM_MAIN_OPTIONS) % NUM_MAIN_OPTIONS;
-			dirty = 1;
+			dirty = true;
 		} else if (PAD_justPressed(BTN_L1)) {
 			selected_light = (selected_light - 1 + numOfLights) % numOfLights;
-			dirty = 1;
+			dirty = true;
 		} else if (PAD_justPressed(BTN_R1)) {
 			selected_light = (selected_light + 1) % numOfLights;
-			dirty = 1;
+			dirty = true;
 		} else if (PAD_justPressed(BTN_LEFT) || PAD_justPressed(BTN_RIGHT)) {
 			handle_light_input(&lightsDefault[selected_light], &event, selected_setting);
-			dirty = 1;
+			dirty = true;
 		}
 
 		if (dirty) {
@@ -346,7 +346,7 @@ int main(int argc, char* argv[]) {
 			}
 
 			GFX_flip(screen);
-			dirty = 0;
+			dirty = false;
 		} else
 			GFX_sync();
 	}

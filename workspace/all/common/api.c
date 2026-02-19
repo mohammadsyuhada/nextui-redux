@@ -1859,9 +1859,9 @@ int GFX_blitHardwareGroup(SDL_Surface* dst, int show_setting) {
 	return ow;
 }
 void GFX_blitHardwareHints(SDL_Surface* dst, int show_setting) {
-	if (show_setting == 1)
+	if (show_setting == INDICATOR_BRIGHTNESS)
 		GFX_blitButtonGroup((char*[]){BRIGHTNESS_BUTTON_LABEL, "BRIGHTNESS", NULL}, 0, dst, 0);
-	else if (show_setting == 3)
+	else if (show_setting == INDICATOR_COLORTEMP)
 		GFX_blitButtonGroup((char*[]){BRIGHTNESS_BUTTON_LABEL, "COLOR TEMP", NULL}, 0, dst, 0);
 	else
 		GFX_blitButtonGroup((char*[]){"MNU", "BRGHT", "SEL", "CLTMP", NULL}, 0, dst, 0);
@@ -3204,8 +3204,8 @@ int PWR_ignoreSettingInput(int btn, int show_setting) {
 	return show_setting && (btn == BTN_MOD_PLUS || btn == BTN_MOD_MINUS);
 }
 
-void PWR_update(int* _dirty, int* _show_setting, PWR_callback_t before_sleep, PWR_callback_t after_sleep) {
-	int dirty = _dirty ? *_dirty : 0;
+void PWR_update(bool* _dirty, int* _show_setting, PWR_callback_t before_sleep, PWR_callback_t after_sleep) {
+	bool dirty = _dirty ? *_dirty : false;
 	int show_setting = _show_setting ? *_show_setting : 0;
 
 	static uint32_t last_input_at = 0;	   // timestamp of last input (autosleep)
@@ -3230,7 +3230,7 @@ void PWR_update(int* _dirty, int* _show_setting, PWR_callback_t before_sleep, PW
 		int is_charging = SDL_AtomicGet(&pwr.is_charging);
 		if (was_charging != is_charging) {
 			was_charging = is_charging;
-			dirty = 1;
+			dirty = true;
 		}
 		checked_charge_at = now;
 	}
@@ -3268,18 +3268,18 @@ void PWR_update(int* _dirty, int* _show_setting, PWR_callback_t before_sleep, PW
 			after_sleep();
 		last_input_at = now = SDL_GetTicks();
 		power_pressed_at = 0;
-		dirty = 1;
+		dirty = true;
 	}
 
-	int was_dirty = dirty; // dirty list (not including settings/battery)
+	bool was_dirty = dirty; // dirty list (not including settings/battery)
 
 	// TODO: only delay hiding setting changes if that setting didn't require a modifier button be held, otherwise release as soon as modifier is released
 
 	int delay_settings = BTN_MOD_BRIGHTNESS == BTN_MENU; // when both volume and brighness require a modifier hide settings as soon as it is released
 #define SETTING_DELAY 500
 	if (show_setting && (now - setting_shown_at >= SETTING_DELAY || !delay_settings) && !PAD_isPressed(BTN_MOD_VOLUME) && !PAD_isPressed(BTN_MOD_BRIGHTNESS) && !PAD_isPressed(BTN_MOD_COLORTEMP)) {
-		show_setting = 0;
-		dirty = 1;
+		show_setting = INDICATOR_NONE;
+		dirty = true;
 	}
 
 	if (!show_setting && !PAD_isPressed(BTN_MOD_VOLUME) && !PAD_isPressed(BTN_MOD_BRIGHTNESS) && !PAD_isPressed(BTN_MOD_COLORTEMP)) {
@@ -3294,11 +3294,11 @@ void PWR_update(int* _dirty, int* _show_setting, PWR_callback_t before_sleep, PW
 		((!BTN_MOD_VOLUME || !BTN_MOD_BRIGHTNESS || !BTN_MOD_COLORTEMP) && (PAD_justRepeated(BTN_MOD_PLUS) || PAD_justRepeated(BTN_MOD_MINUS)))) {
 		setting_shown_at = now;
 		if (PAD_isPressed(BTN_MOD_BRIGHTNESS)) {
-			show_setting = 1;
+			show_setting = INDICATOR_BRIGHTNESS;
 		} else if (PAD_isPressed(BTN_MOD_COLORTEMP)) {
-			show_setting = 3;
+			show_setting = INDICATOR_COLORTEMP;
 		} else {
-			show_setting = 2;
+			show_setting = INDICATOR_VOLUME;
 		}
 	}
 
@@ -3306,7 +3306,7 @@ void PWR_update(int* _dirty, int* _show_setting, PWR_callback_t before_sleep, PW
 		int muted = GetMute();
 		if (muted != was_muted) {
 			was_muted = muted;
-			show_setting = 2;
+			show_setting = INDICATOR_VOLUME;
 			setting_shown_at = now;
 		}
 	}
@@ -3314,7 +3314,7 @@ void PWR_update(int* _dirty, int* _show_setting, PWR_callback_t before_sleep, PW
 	LEDS_applyRules();
 
 	if (show_setting)
-		dirty = 1; // shm is slow or keymon is catching input on the next frame
+		dirty = true; // shm is slow or keymon is catching input on the next frame
 	if (_dirty)
 		*_dirty = dirty;
 	if (_show_setting)

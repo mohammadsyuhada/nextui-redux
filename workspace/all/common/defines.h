@@ -26,6 +26,7 @@
 #define SHORTCUTS_PATH SHARED_USERDATA_PATH "/.minui/shortcuts.txt"
 #define SIMPLE_MODE_PATH SHARED_USERDATA_PATH "/enable-simple-mode"
 #define AUTO_RESUME_PATH SHARED_USERDATA_PATH "/.minui/auto_resume.txt"
+#define RESUME_SLOT_DEFAULT 8
 #define AUTO_RESUME_SLOT 9
 #define GAME_SWITCHER_PERSIST_PATH SHARED_USERDATA_PATH "/.minui/game_switcher.txt"
 

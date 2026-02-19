@@ -590,7 +590,7 @@ int main(int argc, char* argv[]) {
 	compute_graph();
 	renderPage();
 
-	int dirty = 1;
+	bool dirty = true;
 	int show_setting = 0;
 	int was_online = PWR_isOnline();
 	int had_bt = PLAT_btIsConnected();
@@ -603,14 +603,14 @@ int main(int argc, char* argv[]) {
 			// ?
 		} else {
 			if (PAD_justRepeated(BTN_LEFT)) {
-				dirty = 1;
+				dirty = true;
 				int page_max = (int)(((GRAPH_MAX_FULL_PAGES) * (GRAPH_PAGE_SCROLL_SMOOTHNESS)) / (segment_duration / GRAPH_SEGMENT_HIGH));
 				page_max -= GRAPH_PAGE_SCROLL_SMOOTHNESS;
 
 				if (page_max > current_page)
 					current_page++;
 			} else if (PAD_justRepeated(BTN_RIGHT)) {
-				dirty = 1;
+				dirty = true;
 				if (current_page > 0)
 					current_page--;
 			} else if (PAD_justPressed(BTN_B)) {
@@ -619,13 +619,13 @@ int main(int argc, char* argv[]) {
 				if (current_zoom > 0) {
 					current_page = 0;
 					current_zoom--;
-					dirty = 1;
+					dirty = true;
 				}
 			} else if (PAD_justPressed(BTN_R1) || PAD_justPressed(BTN_R2)) {
 				if (current_zoom < 2) {
 					current_page = 0;
 					current_zoom++;
-					dirty = 1;
+					dirty = true;
 				}
 			}
 		}
@@ -634,12 +634,12 @@ int main(int argc, char* argv[]) {
 
 		int is_online = PWR_isOnline();
 		if (was_online != is_online)
-			dirty = 1;
+			dirty = true;
 		was_online = is_online;
 
 		int has_bt = PLAT_btIsConnected();
 		if (had_bt != has_bt)
-			dirty = 1;
+			dirty = true;
 		had_bt = has_bt;
 
 		if (dirty) {
@@ -689,7 +689,7 @@ int main(int argc, char* argv[]) {
 			GFX_blitButtonGroup((char*[]){"B", "BACK", NULL}, 1, screen, 1);
 
 			GFX_flip(screen);
-			dirty = 0;
+			dirty = false;
 		} else
 			GFX_sync();
 	}

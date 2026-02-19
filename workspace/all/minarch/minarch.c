@@ -1025,7 +1025,7 @@ static int State_read(void) { // from picoarch
 
 	state_rzfile = rzipstream_open(filename, RETRO_VFS_FILE_ACCESS_READ);
 	if (!state_rzfile) {
-		if (state_slot != 8) { // st8 is a default state in MiniUI and may not exist, that's okay
+		if (state_slot != RESUME_SLOT_DEFAULT) { // default state in MiniUI, may not exist
 			LOG_error("Error opening state file: %s (%s)\n", filename, strerror(errno));
 		}
 		goto error;
@@ -1063,7 +1063,7 @@ error:
 #else
 	FILE* state_file = fopen(filename, "r");
 	if (!state_file) {
-		if (state_slot != 8) { // st8 is a default state in MiniUI and may not exist, that's okay
+		if (state_slot != RESUME_SLOT_DEFAULT) { // default state in MiniUI, may not exist
 			LOG_error("Error opening state file: %s (%s)\n", filename, strerror(errno));
 		}
 		goto error;
@@ -6426,7 +6426,7 @@ typedef struct MenuList {
 
 static int Menu_messageWithFont(char* message, char** pairs, TTF_Font* f) {
 	GFX_setMode(MODE_MAIN);
-	int dirty = 1;
+	bool dirty = true;
 	while (1) {
 		GFX_startFrame();
 		PAD_poll();
@@ -6441,7 +6441,7 @@ static int Menu_messageWithFont(char* message, char** pairs, TTF_Font* f) {
 		GFX_blitMessage(f, message, screen, &(SDL_Rect){SCALE1(PADDING), SCALE1(PADDING), screen->w - SCALE1(2 * PADDING), screen->h - SCALE1(PILL_SIZE + PADDING)});
 		GFX_blitButtonGroup(pairs, 0, screen, 1);
 		GFX_flip(screen);
-		dirty = 0;
+		dirty = false;
 
 
 		hdmimon();
@@ -7271,7 +7271,7 @@ static int OptionAchievements_showDetail(MenuList* list, int i) {
 	}
 
 	GFX_setMode(MODE_MAIN);
-	int dirty = 1;
+	bool dirty = true;
 	int show_detail = 1;
 
 	while (show_detail) {
@@ -7284,17 +7284,17 @@ static int OptionAchievements_showDetail(MenuList* list, int i) {
 		} else if (PAD_justPressed(BTN_X)) {
 			// Toggle mute for this achievement
 			RA_toggleAchievementMute(ach->id);
-			dirty = 1;
+			dirty = true;
 		} else if (PAD_justPressed(BTN_LEFT) || PAD_justRepeated(BTN_LEFT)) {
 			// Navigate to previous achievement (with wrap-around)
 			i = (i - 1 + ach_menu_count) % ach_menu_count;
 			ach = ach_menu_achievements[i];
-			dirty = 1;
+			dirty = true;
 		} else if (PAD_justPressed(BTN_RIGHT) || PAD_justRepeated(BTN_RIGHT)) {
 			// Navigate to next achievement (with wrap-around)
 			i = (i + 1) % ach_menu_count;
 			ach = ach_menu_achievements[i];
-			dirty = 1;
+			dirty = true;
 		}
 
 		PWR_update(&dirty, NULL, Menu_beforeSleep, Menu_afterSleep);
@@ -7403,7 +7403,7 @@ static int OptionAchievements_showDetail(MenuList* list, int i) {
 			char* hints[] = {"X", is_muted ? "UNMUTE" : "MUTE", "B", "BACK", NULL};
 			GFX_blitButtonGroup(hints, 0, screen, 1);
 			GFX_flip(screen);
-			dirty = 0;
+			dirty = false;
 		}
 
 		hdmimon();
@@ -7477,8 +7477,8 @@ static int OptionAchievements_openMenu(MenuList* list, int i) {
 	ach_sort_achievements(all_achievements, total_achievements);
 
 	// Custom menu loop with X (mute) and Y (filter) support
-	int dirty = 1;
-	int filter_dirty = 1; // Rebuild filtered list when this is set
+	bool dirty = true;
+	bool filter_dirty = true; // Rebuild filtered list when this is set
 	int show_menu = 1;
 	int selected = 0;
 	int start = 0;
@@ -7538,8 +7538,8 @@ static int OptionAchievements_openMenu(MenuList* list, int i) {
 				selected = 0;
 			start = 0;
 
-			filter_dirty = 0;
-			dirty = 1;
+			filter_dirty = false;
+			dirty = true;
 		}
 
 		int end = MIN(start + max_visible, filtered_count);
@@ -7552,7 +7552,7 @@ static int OptionAchievements_openMenu(MenuList* list, int i) {
 			} else if (selected < start) {
 				start--;
 			}
-			dirty = 1;
+			dirty = true;
 		} else if (PAD_justRepeated(BTN_DOWN)) {
 			selected++;
 			if (selected >= filtered_count) {
@@ -7561,7 +7561,7 @@ static int OptionAchievements_openMenu(MenuList* list, int i) {
 			} else if (selected >= end) {
 				start++;
 			}
-			dirty = 1;
+			dirty = true;
 		} else if (PAD_justRepeated(BTN_LEFT)) {
 			// Page up (move up by max_visible items)
 			selected -= max_visible;
@@ -7571,7 +7571,7 @@ static int OptionAchievements_openMenu(MenuList* list, int i) {
 			} else {
 				start = selected;
 			}
-			dirty = 1;
+			dirty = true;
 		} else if (PAD_justRepeated(BTN_RIGHT)) {
 			// Page down (move down by max_visible items)
 			selected += max_visible;
@@ -7581,7 +7581,7 @@ static int OptionAchievements_openMenu(MenuList* list, int i) {
 			} else {
 				start = selected;
 			}
-			dirty = 1;
+			dirty = true;
 		} else if (PAD_justPressed(BTN_B)) {
 			show_menu = 0;
 		} else if (PAD_justPressed(BTN_A)) {
@@ -7593,20 +7593,20 @@ static int OptionAchievements_openMenu(MenuList* list, int i) {
 			} else if (selected >= start + max_visible) {
 				start = selected - max_visible + 1;
 			}
-			dirty = 1;
+			dirty = true;
 		} else if (PAD_justPressed(BTN_X)) {
 			// Toggle mute for selected achievement
 			if (filtered_count > 0) {
 				const rc_client_achievement_t* ach = filtered[selected];
 				RA_toggleAchievementMute(ach->id);
-				dirty = 1;
+				dirty = true;
 			}
 		} else if (PAD_justPressed(BTN_Y)) {
 			// Toggle filter: All <-> Locked Only
 			ach_filter_locked_only = !ach_filter_locked_only;
 			selected = 0;
 			start = 0;
-			filter_dirty = 1;
+			filter_dirty = true;
 		}
 
 		if (dirty) {
@@ -7735,7 +7735,7 @@ static int OptionAchievements_openMenu(MenuList* list, int i) {
 			GFX_blitButtonGroup(hints, 0, screen, 1);
 
 			GFX_flip(screen);
-			dirty = 0;
+			dirty = false;
 		}
 	}
 
@@ -7862,7 +7862,7 @@ static int Menu_options(MenuList* list) {
 	MenuItem* items = list->items;
 	int type = list->type;
 
-	int dirty = 1;
+	bool dirty = true;
 	int show_options = 1;
 	int show_settings = 0;
 	int await_input = 0;
@@ -7896,7 +7896,7 @@ static int Menu_options(MenuList* list) {
 				start += 1;
 				end += 1;
 			}
-			dirty = 1;
+			dirty = true;
 			await_input = false;
 		}
 
@@ -7912,7 +7912,7 @@ static int Menu_options(MenuList* list) {
 				start -= 1;
 				end -= 1;
 			}
-			dirty = 1;
+			dirty = true;
 		} else if (PAD_justRepeated(BTN_DOWN)) {
 			selected += 1;
 			if (selected >= count) {
@@ -7923,7 +7923,7 @@ static int Menu_options(MenuList* list) {
 				start += 1;
 				end += 1;
 			}
-			dirty = 1;
+			dirty = true;
 		} else {
 			MenuItem* item = &items[selected];
 			if (item->values && item->values != button_labels) { // not an input binding
@@ -7942,7 +7942,7 @@ static int Menu_options(MenuList* list) {
 					else if (list->on_change)
 						list->on_change(list, selected);
 
-					dirty = 1;
+					dirty = true;
 				} else if (PAD_justRepeated(BTN_RIGHT)) {
 					// first check if its not out of bounds already
 					int i = 0;
@@ -7961,7 +7961,7 @@ static int Menu_options(MenuList* list) {
 					else if (list->on_change)
 						list->on_change(list, selected);
 
-					dirty = 1;
+					dirty = true;
 				}
 			}
 		}
@@ -7999,7 +7999,7 @@ static int Menu_options(MenuList* list) {
 						end += 1;
 					}
 				}
-				dirty = 1;
+				dirty = true;
 			}
 		} else if (type == MENU_INPUT) {
 			if (PAD_justPressed(BTN_X)) {
@@ -8021,7 +8021,7 @@ static int Menu_options(MenuList* list) {
 					start += 1;
 					end += 1;
 				}
-				dirty = 1;
+				dirty = true;
 			}
 		}
 
@@ -8228,7 +8228,7 @@ static int Menu_options(MenuList* list) {
 		}
 
 		GFX_flip(screen);
-		dirty = 0;
+		dirty = false;
 
 		hdmimon();
 	}
@@ -8373,7 +8373,7 @@ static void Menu_scale(SDL_Surface* src, SDL_Surface* dst) {
 static void Menu_initState(void) {
 	if (exists(menu.slot_path))
 		menu.slot = getInt(menu.slot_path);
-	if (menu.slot == 8)
+	if (menu.slot == RESUME_SLOT_DEFAULT)
 		menu.slot = 0;
 
 	menu.save_exists = 0;
@@ -8598,7 +8598,7 @@ static void Menu_loop(void) {
 
 	int status = STATUS_CONT; // TODO: no longer used?
 	int show_setting = 0;
-	int dirty = 1;
+	bool dirty = true;
 	int ignore_menu = 0;
 	int menu_start = 0;
 	SDL_Surface* preview = SDL_CreateRGBSurface(SDL_SWSURFACE, DEVICE_WIDTH / 2, DEVICE_HEIGHT / 2, 32, RGBA_MASK_8888); // TODO: retain until changed?
@@ -8615,37 +8615,37 @@ static void Menu_loop(void) {
 			selected -= 1;
 			if (selected < 0)
 				selected += MENU_ITEM_COUNT;
-			dirty = 1;
+			dirty = true;
 		} else if (PAD_justPressed(BTN_DOWN)) {
 			selected += 1;
 			if (selected >= MENU_ITEM_COUNT)
 				selected -= MENU_ITEM_COUNT;
-			dirty = 1;
+			dirty = true;
 		} else if (PAD_justPressed(BTN_LEFT)) {
 			if (menu.total_discs > 1 && selected == ITEM_CONT) {
 				menu.disc -= 1;
 				if (menu.disc < 0)
 					menu.disc += menu.total_discs;
-				dirty = 1;
+				dirty = true;
 				sprintf(disc_name, "Disc %i", menu.disc + 1);
 			} else if (selected == ITEM_SAVE || selected == ITEM_LOAD) {
 				menu.slot -= 1;
 				if (menu.slot < 0)
 					menu.slot += MENU_SLOT_COUNT;
-				dirty = 1;
+				dirty = true;
 			}
 		} else if (PAD_justPressed(BTN_RIGHT)) {
 			if (menu.total_discs > 1 && selected == ITEM_CONT) {
 				menu.disc += 1;
 				if (menu.disc == menu.total_discs)
 					menu.disc -= menu.total_discs;
-				dirty = 1;
+				dirty = true;
 				sprintf(disc_name, "Disc %i", menu.disc + 1);
 			} else if (selected == ITEM_SAVE || selected == ITEM_LOAD) {
 				menu.slot += 1;
 				if (menu.slot >= MENU_SLOT_COUNT)
 					menu.slot -= MENU_SLOT_COUNT;
-				dirty = 1;
+				dirty = true;
 			}
 		}
 
@@ -8698,7 +8698,7 @@ static void Menu_loop(void) {
 						SDL_Rect dst = {0, 0, DEVICE_WIDTH, DEVICE_HEIGHT};
 						SDL_BlitScaled(menu.bitmap, NULL, backing, &dst);
 					}
-					dirty = 1;
+					dirty = true;
 				}
 			} break;
 			case ITEM_QUIT:
@@ -8820,7 +8820,7 @@ static void Menu_loop(void) {
 				}
 			}
 			GFX_flip(screen);
-			dirty = 0;
+			dirty = false;
 		} else {
 			// please dont flip cause it will cause current_fps dip and audio is weird first seconds
 			GFX_delay();

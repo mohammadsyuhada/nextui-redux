@@ -54,17 +54,17 @@ GameSwitcherResult GameSwitcher_handleInput(unsigned long now) {
 	if (PAD_justPressed(BTN_B) || PAD_tappedSelect(now)) {
 		result.screen = SCREEN_GAMELIST;
 		switcher_selected = 0;
-		result.dirty = 1;
-		result.folderbgchanged = 1;
+		result.dirty = true;
+		result.folderbgchanged = true;
 	} else if (Recents_count() > 0 && PAD_justReleased(BTN_A)) {
 		// this will drop us back into game switcher after leaving the game
 		putFile(GAME_SWITCHER_PERSIST_PATH, "unused");
-		result.startgame = 1;
+		result.startgame = true;
 		Entry* selectedEntry =
 			Recents_entryFromRecent(Recents_at(switcher_selected));
 		resume.should_resume = resume.can_resume;
 		Entry_open(selectedEntry);
-		result.dirty = 1;
+		result.dirty = true;
 		Entry_free(selectedEntry);
 	} else if (Recents_count() > 0 && PAD_justReleased(BTN_Y)) {
 		Recents_removeAt(switcher_selected);
@@ -72,18 +72,18 @@ GameSwitcherResult GameSwitcher_handleInput(unsigned long now) {
 			switcher_selected = Recents_count() - 1;
 		if (switcher_selected < 0)
 			switcher_selected = 0;
-		result.dirty = 1;
+		result.dirty = true;
 	} else if (PAD_justPressed(BTN_RIGHT)) {
 		switcher_selected++;
 		if (switcher_selected == Recents_count())
 			switcher_selected = 0; // wrap
-		result.dirty = 1;
+		result.dirty = true;
 		result.gsanimdir = SLIDE_LEFT;
 	} else if (PAD_justPressed(BTN_LEFT)) {
 		switcher_selected--;
 		if (switcher_selected < 0)
 			switcher_selected = Recents_count() - 1; // wrap
-		result.dirty = 1;
+		result.dirty = true;
 		result.gsanimdir = SLIDE_RIGHT;
 	}
 

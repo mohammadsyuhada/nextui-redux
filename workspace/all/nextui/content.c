@@ -63,8 +63,8 @@ void Directory_index(Directory* self) {
 			}
 			fclose(file);
 
-			int resort = 0;
-			int filter = 0;
+			bool resort = false;
+			bool filter = false;
 			for (int i = 0; i < self->entries->count; i++) {
 				Entry* entry = self->entries->items[i];
 				char* slash = strrchr(entry->path, '/');
@@ -75,9 +75,9 @@ void Directory_index(Directory* self) {
 				if (alias) {
 					free(entry->name);
 					entry->name = strdup(alias);
-					resort = 1;
+					resort = true;
 					if (!filter && hide(entry->name))
-						filter = 1;
+						filter = true;
 				}
 			}
 
@@ -394,7 +394,7 @@ Array* getRoms(void) {
 			}
 			fclose(file);
 
-			int resort = 0;
+			bool resort = false;
 			for (int i = 0; i < entries->count; i++) {
 				Entry* entry = entries->items[i];
 				char* slash = strrchr(entry->path, '/');
@@ -405,7 +405,7 @@ Array* getRoms(void) {
 				if (alias) {
 					free(entry->name);
 					entry->name = strdup(alias);
-					resort = 1;
+					resort = true;
 				}
 			}
 			if (resort)
