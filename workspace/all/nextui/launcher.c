@@ -350,7 +350,8 @@ Array* pathToStack(const char* path) {
 	// Always include root directory
 	Directory* root_dir = Directory_new(SDCARD_PATH, 0);
 	root_dir->start = 0;
-	root_dir->end = (root_dir->entries->count < MAIN_ROW_COUNT) ? root_dir->entries->count : MAIN_ROW_COUNT;
+	int root_rows = MAIN_ROW_COUNT - 1;
+	root_dir->end = (root_dir->entries->count < root_rows) ? root_dir->entries->count : root_rows;
 	Array_push(array, root_dir);
 
 	if (exactMatch(path, SDCARD_PATH))
@@ -399,13 +400,13 @@ Array* pathToStack(const char* path) {
 				// Replace with updated one using combined path
 				Directory* merged = Directory_new(temp_path, 0);
 				merged->start = 0;
-				merged->end = (merged->entries->count < MAIN_ROW_COUNT) ? merged->entries->count : MAIN_ROW_COUNT;
+				merged->end = (merged->entries->count < root_rows) ? merged->entries->count : root_rows;
 				Array_push(array, merged);
 			}
 		} else {
 			Directory* dir = Directory_new(temp_path, 0);
 			dir->start = 0;
-			dir->end = (dir->entries->count < MAIN_ROW_COUNT) ? dir->entries->count : MAIN_ROW_COUNT;
+			dir->end = (dir->entries->count < root_rows) ? dir->entries->count : root_rows;
 			Array_push(array, dir);
 		}
 
@@ -461,7 +462,8 @@ void openDirectory(char* path, int auto_launch) {
 
 		top = Directory_new(path, selected);
 		top->start = start;
-		top->end = end ? end : ((top->entries->count < MAIN_ROW_COUNT) ? top->entries->count : MAIN_ROW_COUNT);
+		int rc = MAIN_ROW_COUNT - 1;
+		top->end = end ? end : ((top->entries->count < rc) ? top->entries->count : rc);
 
 		Array_push(stack, top);
 	} else {
@@ -603,11 +605,12 @@ void loadLast(void) { // call after loading root directory
 				if (exactMatch(entry->path, path) || (strlen(collated_path) && prefixMatch(collated_path, entry->path) && isConsoleDir(entry->path)) || (prefixMatch(COLLECTIONS_PATH, full_path) && suffixMatch(filename, entry->path))) {
 					top->selected = i;
 					if (i >= top->end) {
+						int lrc = MAIN_ROW_COUNT - 1;
 						top->start = i;
-						top->end = top->start + MAIN_ROW_COUNT;
+						top->end = top->start + lrc;
 						if (top->end > top->entries->count) {
 							top->end = top->entries->count;
-							top->start = top->end - MAIN_ROW_COUNT;
+							top->start = top->end - lrc;
 						}
 					}
 					if (last->count == 0 && !exactMatch(entry->path, FAUX_RECENT_PATH) && !(!exactMatch(entry->path, COLLECTIONS_PATH) && prefixMatch(COLLECTIONS_PATH, entry->path)))

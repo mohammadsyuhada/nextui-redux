@@ -60,7 +60,8 @@ QuickMenuResult QuickMenu_handleInput(unsigned long now) {
 			// nav origin
 			top->selected = 0;
 			top->start = 0;
-			top->end = top->start + MAIN_ROW_COUNT;
+			int qm_rc = MAIN_ROW_COUNT - 1;
+			top->end = top->start + qm_rc;
 			restore.depth = -1;
 			restore.relative = -1;
 			restore.selected = 0;
@@ -158,11 +159,6 @@ void QuickMenu_render(int lastScreen, int show_setting, int ow,
 
 	if (show_setting && !GetHDMI())
 		GFX_blitHardwareHints(screen, show_setting);
-	else
-		GFX_blitButtonGroup(
-			(char*[]){BTN_SLEEP == BTN_POWER ? "POWER" : "MENU", "SLEEP",
-					  NULL},
-			0, screen, 0);
 
 	GFX_blitButtonGroup((char*[]){"B", "BACK", "A", "OPEN", NULL}, 1,
 						screen, 1);

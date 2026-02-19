@@ -168,6 +168,7 @@ static int GameList_handleInput(unsigned long now, int currentScreen,
 								int show_setting) {
 	int selected = top->selected;
 	int total = top->entries->count;
+	int row_count = MAIN_ROW_COUNT - 1;
 
 	if (PAD_tappedMenu(now)) {
 		currentScreen = SCREEN_QUICKMENU;
@@ -188,7 +189,7 @@ static int GameList_handleInput(unsigned long now, int currentScreen,
 				selected -= 1;
 				if (selected < 0) {
 					selected = total - 1;
-					int start = total - MAIN_ROW_COUNT;
+					int start = total - row_count;
 					top->start = (start < 0) ? 0 : start;
 					top->end = total;
 				} else if (selected < top->start) {
@@ -203,7 +204,7 @@ static int GameList_handleInput(unsigned long now, int currentScreen,
 				if (selected >= total) {
 					selected = 0;
 					top->start = 0;
-					top->end = (total < MAIN_ROW_COUNT) ? total : MAIN_ROW_COUNT;
+					top->end = (total < row_count) ? total : row_count;
 				} else if (selected >= top->end) {
 					top->start += 1;
 					top->end += 1;
@@ -211,29 +212,29 @@ static int GameList_handleInput(unsigned long now, int currentScreen,
 			}
 		}
 		if (PAD_justRepeated(BTN_LEFT)) {
-			selected -= MAIN_ROW_COUNT;
+			selected -= row_count;
 			if (selected < 0) {
 				selected = 0;
 				top->start = 0;
-				top->end = (total < MAIN_ROW_COUNT) ? total : MAIN_ROW_COUNT;
+				top->end = (total < row_count) ? total : row_count;
 			} else if (selected < top->start) {
-				top->start -= MAIN_ROW_COUNT;
+				top->start -= row_count;
 				if (top->start < 0)
 					top->start = 0;
-				top->end = top->start + MAIN_ROW_COUNT;
+				top->end = top->start + row_count;
 			}
 		} else if (PAD_justRepeated(BTN_RIGHT)) {
-			selected += MAIN_ROW_COUNT;
+			selected += row_count;
 			if (selected >= total) {
 				selected = total - 1;
-				int start = total - MAIN_ROW_COUNT;
+				int start = total - row_count;
 				top->start = (start < 0) ? 0 : start;
 				top->end = total;
 			} else if (selected >= top->end) {
-				top->end += MAIN_ROW_COUNT;
+				top->end += row_count;
 				if (top->end > total)
 					top->end = total;
-				top->start = top->end - MAIN_ROW_COUNT;
+				top->start = top->end - row_count;
 			}
 		}
 	}
@@ -245,12 +246,12 @@ static int GameList_handleInput(unsigned long now, int currentScreen,
 		int i = entry->alpha - 1;
 		if (i >= 0) {
 			selected = top->alphas.items[i];
-			if (total > MAIN_ROW_COUNT) {
+			if (total > row_count) {
 				top->start = selected;
-				top->end = top->start + MAIN_ROW_COUNT;
+				top->end = top->start + row_count;
 				if (top->end > total)
 					top->end = total;
-				top->start = top->end - MAIN_ROW_COUNT;
+				top->start = top->end - row_count;
 			}
 		}
 	} else if (confirm_shortcut_action == SHORTCUT_NONE && PAD_justRepeated(BTN_R1) &&
@@ -260,12 +261,12 @@ static int GameList_handleInput(unsigned long now, int currentScreen,
 		int i = entry->alpha + 1;
 		if (i < top->alphas.count) {
 			selected = top->alphas.items[i];
-			if (total > MAIN_ROW_COUNT) {
+			if (total > row_count) {
 				top->start = selected;
-				top->end = top->start + MAIN_ROW_COUNT;
+				top->end = top->start + row_count;
 				if (top->end > total)
 					top->end = total;
-				top->start = top->end - MAIN_ROW_COUNT;
+				top->start = top->end - row_count;
 			}
 		}
 	}
@@ -482,7 +483,9 @@ int main(int argc, char* argv[]) {
 			}
 			GFX_clear(screen);
 
-			int ow = GFX_blitHardwareGroup(screen, show_setting);
+			// render top menu bar
+			const char* menu_title = stack->count > 1 ? top->name : "NextUI-Redux";
+			int ow = UI_renderMenuBar(screen, menu_title, show_setting);
 			if (currentScreen == SCREEN_QUICKMENU) {
 				QuickMenu_render(lastScreen, show_setting, ow,
 								 folderBgPath, sizeof(folderBgPath));
@@ -552,8 +555,6 @@ int main(int argc, char* argv[]) {
 				// buttons
 				if (show_setting && !GetHDMI())
 					GFX_blitHardwareHints(screen, show_setting);
-				else if (resume.can_resume)
-					GFX_blitButtonGroup((char*[]){"X", "RESUME", NULL}, 0, screen, 0);
 				else if (total > 0 &&
 						 (Shortcuts_isInToolsFolder(top->path) ||
 						  Shortcuts_isInConsoleDir(top->path)) &&
@@ -562,20 +563,17 @@ int main(int argc, char* argv[]) {
 									  ? "UNPIN"
 									  : "PIN";
 					GFX_blitButtonGroup((char*[]){"Y", label, NULL}, 0, screen, 0);
-				} else
-					GFX_blitButtonGroup(
-						(char*[]){BTN_SLEEP == BTN_POWER ? "POWER" : "MENU",
-								  BTN_SLEEP == BTN_POWER || simple_mode ? "SLEEP"
-																		: "INFO",
-								  NULL},
-						0, screen, 0);
+				}
 
 				if (total == 0) {
 					if (stack->count > 1) {
 						GFX_blitButtonGroup((char*[]){"B", "BACK", NULL}, 0, screen, 1);
 					}
 				} else if (confirm_shortcut_action == SHORTCUT_NONE) {
-					if (stack->count > 1) {
+					if (resume.can_resume) {
+						GFX_blitButtonGroup((char*[]){"X", "RESUME", "A", "OPEN", NULL}, 1,
+											screen, 1);
+					} else if (stack->count > 1) {
 						GFX_blitButtonGroup((char*[]){"B", "BACK", "A", "OPEN", NULL}, 1,
 											screen, 1);
 					} else {
@@ -607,7 +605,8 @@ int main(int argc, char* argv[]) {
 							trimSortingMeta(&entry_unique);
 						char* display_text = entry_unique ? entry_unique : entry_name;
 
-						int y = SCALE1(PADDING + j * PILL_SIZE);
+						int top_offset = PILL_SIZE;
+						int y = SCALE1(PADDING + top_offset + j * PILL_SIZE);
 
 						if (list_show_entry_names) {
 							char truncated[256];

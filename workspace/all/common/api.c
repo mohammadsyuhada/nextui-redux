@@ -1760,7 +1760,7 @@ int GFX_blitHardwareGroup(SDL_Surface* dst, int show_setting) {
 		// Use the helper function to render the indicator at the standard position
 		ow = SCALE1(PILL_SIZE + SETTINGS_WIDTH + 10 + 4);
 		ox = dst->w - SCALE1(PADDING) - ow;
-		oy = SCALE1(PADDING);
+		oy = SCALE1(PADDING) / 2;
 		GFX_blitHardwareIndicator(dst, ox, oy, (IndicatorType)show_setting);
 	} else {
 		ConnectionStrength strength = PLAT_connectionStrength();
@@ -1774,9 +1774,7 @@ int GFX_blitHardwareGroup(SDL_Surface* dst, int show_setting) {
 		if (!show_bt && !show_wifi && !show_clock) {
 			ow = SCALE1(PILL_SIZE);
 			ox = dst->w - SCALE1(PADDING) - ow;
-			oy = SCALE1(PADDING);
-
-			GFX_blitPillColor(ASSET_WHITE_PILL, dst, &(SDL_Rect){ox, oy, ow, SCALE1(PILL_SIZE)}, THEME_COLOR2, RGB_WHITE);
+			oy = SCALE1(PADDING) / 2;
 
 			int battery_x = ox + (SCALE1(PILL_SIZE) - (battery_rect.w + FIXED_SCALE)) / 2;
 			int battery_y = oy + (SCALE1(PILL_SIZE) - battery_rect.h) / 2;
@@ -1814,8 +1812,7 @@ int GFX_blitHardwareGroup(SDL_Surface* dst, int show_setting) {
 			}
 
 			ox = dst->w - SCALE1(PADDING) - ow;
-			oy = SCALE1(PADDING);
-			GFX_blitPillColor(ASSET_WHITE_PILL, dst, &(SDL_Rect){ox, oy, ow, SCALE1(PILL_SIZE)}, THEME_COLOR2, RGB_WHITE);
+			oy = SCALE1(PADDING) / 2;
 
 			ox += SCALE1(BUTTON_MARGIN);
 

@@ -61,3 +61,37 @@ void UI_renderCenteredMessage(SDL_Surface* dst, const char* message) {
 	SDL_Rect fullscreen_rect = {0, 0, dst->w, dst->h};
 	GFX_blitMessage(font.large, (char*)message, dst, &fullscreen_rect);
 }
+
+int UI_renderMenuBar(SDL_Surface* screen, const char* title, int show_setting) {
+	// Semi-transparent bar background (cached between calls)
+	static SDL_Surface* menu_bar = NULL;
+	int bar_h = SCALE1(PADDING + PILL_SIZE);
+	if (!menu_bar || menu_bar->w != screen->w || menu_bar->h != bar_h) {
+		if (menu_bar)
+			SDL_FreeSurface(menu_bar);
+		menu_bar = SDL_CreateRGBSurface(SDL_SWSURFACE, screen->w, bar_h, 32,
+										0x00FF0000, 0x0000FF00, 0x000000FF, 0xFF000000);
+		SDL_FillRect(menu_bar, NULL, SDL_MapRGBA(menu_bar->format, 0, 0, 0, 178));
+		SDL_SetSurfaceBlendMode(menu_bar, SDL_BLENDMODE_BLEND);
+	}
+	SDL_BlitSurface(menu_bar, NULL, screen, &(SDL_Rect){0, 0});
+
+	// Hardware group (right side)
+	int ow = GFX_blitHardwareGroup(screen, show_setting);
+
+	// Title text (left side, no pill)
+	if (title && title[0]) {
+		int max_title_w = screen->w - ow - SCALE1(PADDING * 2);
+		char truncated[256];
+		GFX_truncateText(font.medium, title, truncated, max_title_w, 0);
+
+		SDL_Surface* text = TTF_RenderUTF8_Blended(font.medium, truncated, COLOR_GRAY);
+		if (text) {
+			int text_y = SCALE1(PADDING) + (SCALE1(PILL_SIZE) - text->h) / 2;
+			SDL_BlitSurface(text, NULL, screen, &(SDL_Rect){SCALE1(PADDING + BUTTON_PADDING), text_y});
+			SDL_FreeSurface(text);
+		}
+	}
+
+	return ow;
+}
