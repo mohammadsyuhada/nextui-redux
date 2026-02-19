@@ -5,6 +5,8 @@ Minimal on the surface. Structured underneath. Built to last.
 
 [NextUI](https://github.com/LoveRetro/NextUI) is a custom firmware for retro handheld gaming devices. It replaces the stock operating system with a clean, minimal interface focused on playing retro games with no unnecessary bloat.
 
+[![ko-fi](https://ko-fi.com/img/githubbutton_sm.svg)](https://ko-fi.com/Y8Y61SI04B)
+
 ![nextui-redux](https://raw.githubusercontent.com/mohammadsyuhada/NextUI-Redux/main/.github/resources/demo.gif)
 
 ## Supported Devices
@@ -40,6 +42,11 @@ New Features:
 - Game art fallback for games without save state in the game switcher
 - Shortcut in the main menu for quick access to the regularly used Tools/Games
 - Redesigned UI. It is now consistent throughout the system.
+
+Upcoming Features:
+- Integration with [Netplay](https://github.com/mohammadsyuhada/nextui-netplay)
+- Built-in [Music Player](https://github.com/mohammadsyuhada/nextui-music-player)
+- Built-in [Video Player](https://github.com/mohammadsyuhada/nextui-video-player)
 
 Ongoing focus areas:
 
