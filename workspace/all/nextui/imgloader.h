@@ -48,7 +48,7 @@ void startLoadFolderBackground(const char* imagePath, BackgroundLoadedCallback c
 void onBackgroundLoaded(SDL_Surface* surface);
 
 // Thumbnail loading
-void startLoadThumb(const char* thumbpath, BackgroundLoadedCallback callback);
-void onThumbLoaded(SDL_Surface* surface);
+bool startLoadThumb(const char* thumbpath);
+int thumbCheckAsyncLoaded(void);
 
 #endif // IMGLOADER_H

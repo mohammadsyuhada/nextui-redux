@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <limits.h>
 #include <stdbool.h>
 #include "defines.h"
 #include "api.h"
@@ -52,6 +53,23 @@ static Uint32 cachedScreenFormat = 0;
 static int cachedScreenBitsPerPixel = 0;
 static int cachedScreenW = 0;
 static int cachedScreenH = 0;
+
+///////////////////////////////////////
+// Thumbnail cache
+
+#define THUMB_CACHE_SIZE 8
+
+typedef struct {
+	char path[MAX_PATH];
+	SDL_Surface* surface;
+	int lru_counter;
+	bool occupied;
+} ThumbCacheEntry;
+
+static ThumbCacheEntry thumb_cache[THUMB_CACHE_SIZE];
+static int thumb_lru_counter = 0;
+static char desiredThumbPath[MAX_PATH] = {0};
+static SDL_atomic_t thumbAsyncLoaded;
 
 ///////////////////////////////////////
 // Shared state (non-static, externed in imgloader.h)
@@ -166,6 +184,156 @@ int loadWorker(void* arg) {
 }
 
 ///////////////////////////////////////
+// Thumbnail cache helpers (must be called under thumbMutex)
+
+static void thumbCacheInsert(const char* path, SDL_Surface* surface) {
+	int target = -1;
+	int min_lru = INT_MAX;
+
+	// Check if already cached (update in place)
+	for (int i = 0; i < THUMB_CACHE_SIZE; i++) {
+		if (thumb_cache[i].occupied && strcmp(thumb_cache[i].path, path) == 0) {
+			SDL_FreeSurface(thumb_cache[i].surface);
+			thumb_cache[i].surface = surface;
+			thumb_cache[i].lru_counter = ++thumb_lru_counter;
+			return;
+		}
+	}
+
+	// Find empty slot
+	for (int i = 0; i < THUMB_CACHE_SIZE; i++) {
+		if (!thumb_cache[i].occupied) {
+			target = i;
+			break;
+		}
+	}
+
+	// No empty slot - evict LRU
+	if (target < 0) {
+		for (int i = 0; i < THUMB_CACHE_SIZE; i++) {
+			if (thumb_cache[i].lru_counter < min_lru) {
+				min_lru = thumb_cache[i].lru_counter;
+				target = i;
+			}
+		}
+		if (thumb_cache[target].surface)
+			SDL_FreeSurface(thumb_cache[target].surface);
+	}
+
+	strncpy(thumb_cache[target].path, path, sizeof(thumb_cache[target].path) - 1);
+	thumb_cache[target].path[sizeof(thumb_cache[target].path) - 1] = '\0';
+	thumb_cache[target].surface = surface;
+	thumb_cache[target].lru_counter = ++thumb_lru_counter;
+	thumb_cache[target].occupied = true;
+}
+
+///////////////////////////////////////
+// Dedicated thumbnail worker thread
+
+static int thumbLoadWorker(void* arg) {
+	TaskQueue* q = (TaskQueue*)arg;
+	while (!SDL_AtomicGet(&workerThreadsShutdown)) {
+		SDL_LockMutex(q->mutex);
+		while (!q->head && !SDL_AtomicGet(&workerThreadsShutdown)) {
+			SDL_CondWait(q->cond, q->mutex);
+		}
+		if (SDL_AtomicGet(&workerThreadsShutdown)) {
+			SDL_UnlockMutex(q->mutex);
+			break;
+		}
+		TaskNode* node = q->head;
+		q->head = node->next;
+		if (!q->head)
+			q->tail = NULL;
+		q->size--;
+		SDL_UnlockMutex(q->mutex);
+
+		LoadBackgroundTask* task = node->task;
+		free(node);
+
+		SDL_Surface* result = NULL;
+		SDL_Surface* image = IMG_Load(task->imagePath);
+		if (image) {
+			SDL_Surface* imageRGBA =
+				SDL_ConvertSurfaceFormat(image, cachedScreenFormat, 0);
+			SDL_FreeSurface(image);
+
+			if (imageRGBA) {
+				// Downscale to display dimensions before processing
+				int img_w = imageRGBA->w;
+				int img_h = imageRGBA->h;
+				double aspect_ratio = (double)img_h / img_w;
+				int max_w = (int)(cachedScreenW * CFG_getGameArtWidth());
+				int max_h = (int)(cachedScreenH * 0.6);
+				int new_w = max_w;
+				int new_h = (int)(new_w * aspect_ratio);
+				if (new_h > max_h) {
+					new_h = max_h;
+					new_w = (int)(new_h / aspect_ratio);
+				}
+
+				if (new_w > 0 && new_h > 0 &&
+					(new_w < img_w || new_h < img_h)) {
+					SDL_Surface* downscaled = SDL_CreateRGBSurfaceWithFormat(
+						0, new_w, new_h,
+						imageRGBA->format->BitsPerPixel,
+						imageRGBA->format->format);
+					if (downscaled) {
+						SDL_BlitScaled(imageRGBA, NULL, downscaled, NULL);
+						SDL_FreeSurface(imageRGBA);
+						imageRGBA = downscaled;
+					}
+				}
+
+				// Apply rounded corners at display resolution (much faster)
+				GFX_ApplyRoundedCorners_8888(
+					imageRGBA,
+					&(SDL_Rect){0, 0, imageRGBA->w, imageRGBA->h},
+					SCALE1(CFG_getThumbnailRadius()));
+
+				result = imageRGBA;
+			}
+		}
+
+		// Cache result and conditionally update thumbbmp
+		SDL_LockMutex(thumbMutex);
+		bool is_current = (strcmp(task->imagePath, desiredThumbPath) == 0);
+		bool had_any = (thumbbmp != NULL);
+
+		if (result) {
+			if (is_current) {
+				// Duplicate for thumbbmp before cache takes ownership
+				SDL_Surface* thumb_copy =
+					SDL_ConvertSurface(result, result->format, 0);
+				thumbCacheInsert(task->imagePath, result);
+				if (thumbbmp)
+					SDL_FreeSurface(thumbbmp);
+				thumbbmp = thumb_copy;
+			} else {
+				thumbCacheInsert(task->imagePath, result);
+			}
+		}
+
+		if (is_current) {
+			if (!result) {
+				if (thumbbmp)
+					SDL_FreeSurface(thumbbmp);
+				thumbbmp = NULL;
+			}
+			thumbchanged = 1;
+			setNeedDraw(1);
+			// Signal layout recalculation only if thumb presence changed
+			if (had_any != (thumbbmp != NULL))
+				SDL_AtomicSet(&thumbAsyncLoaded, 1);
+		}
+
+		SDL_UnlockMutex(thumbMutex);
+		free(task);
+	}
+	return 0;
+}
+
+///////////////////////////////////////
 // Public loading functions
 
 void startLoadFolderBackground(const char* imagePath, BackgroundLoadedCallback callback) {
@@ -194,46 +362,67 @@ void onBackgroundLoaded(SDL_Surface* surface) {
 	SDL_UnlockMutex(bgMutex);
 }
 
-void startLoadThumb(const char* thumbpath, BackgroundLoadedCallback callback) {
+bool startLoadThumb(const char* thumbpath) {
+	SDL_LockMutex(thumbMutex);
+
+	// Fast path: already showing the right thumb
+	if (thumbbmp && strcmp(desiredThumbPath, thumbpath) == 0) {
+		thumbchanged = 1;
+		setNeedDraw(1);
+		SDL_UnlockMutex(thumbMutex);
+		return true;
+	}
+
+	// Different item selected
+	strncpy(desiredThumbPath, thumbpath, sizeof(desiredThumbPath) - 1);
+	desiredThumbPath[sizeof(desiredThumbPath) - 1] = '\0';
+
+	// Check cache - swap immediately if found
+	for (int i = 0; i < THUMB_CACHE_SIZE; i++) {
+		if (thumb_cache[i].occupied &&
+			strcmp(thumb_cache[i].path, thumbpath) == 0) {
+			thumb_cache[i].lru_counter = ++thumb_lru_counter;
+			if (thumbbmp)
+				SDL_FreeSurface(thumbbmp);
+			thumbbmp = SDL_ConvertSurface(thumb_cache[i].surface,
+										  thumb_cache[i].surface->format, 0);
+			if (thumbbmp) {
+				thumbchanged = 1;
+				setNeedDraw(1);
+			}
+			SDL_UnlockMutex(thumbMutex);
+			return thumbbmp != NULL;
+		}
+	}
+
+	// Cache miss - keep old thumb visible while loading
+	bool has_thumb = (thumbbmp != NULL);
+	if (has_thumb)
+		thumbchanged = 1; // redraw old thumb for this frame
+	SDL_UnlockMutex(thumbMutex);
+
+	// Enqueue for async loading
 	LoadBackgroundTask* task = malloc(sizeof(LoadBackgroundTask));
 	if (!task)
-		return;
-
+		return has_thumb;
 	snprintf(task->imagePath, sizeof(task->imagePath), "%s", thumbpath);
-	task->callback = callback;
+	task->callback = NULL;
 	enqueueTask(&thumbQueue, task);
+	return has_thumb;
 }
-void onThumbLoaded(SDL_Surface* surface) {
-	SDL_LockMutex(thumbMutex);
-	thumbchanged = 1;
-	if (thumbbmp)
-		SDL_FreeSurface(thumbbmp);
-	if (!surface) {
-		thumbbmp = NULL;
-		SDL_UnlockMutex(thumbMutex);
-		return;
+
+int thumbCheckAsyncLoaded(void) {
+	return SDL_AtomicCAS(&thumbAsyncLoaded, 1, 0);
+}
+
+static void thumbCacheClear(void) {
+	for (int i = 0; i < THUMB_CACHE_SIZE; i++) {
+		if (thumb_cache[i].surface)
+			SDL_FreeSurface(thumb_cache[i].surface);
+		thumb_cache[i] = (ThumbCacheEntry){0};
 	}
-
-	thumbbmp = surface;
-	int img_w = surface->w;
-	int img_h = surface->h;
-	double aspect_ratio = (double)img_h / img_w;
-	int max_w = (int)(cachedScreenW * CFG_getGameArtWidth());
-	int max_h = (int)(cachedScreenH * 0.6);
-	int new_w = max_w;
-	int new_h = (int)(new_w * aspect_ratio);
-
-	if (new_h > max_h) {
-		new_h = max_h;
-		new_w = (int)(new_h / aspect_ratio);
-	}
-
-	GFX_ApplyRoundedCorners_8888(
-		surface,
-		&(SDL_Rect){0, 0, surface->w, surface->h},
-		SCALE1((float)CFG_getThumbnailRadius() * ((float)img_w / (float)new_w)));
-	setNeedDraw(1);
-	SDL_UnlockMutex(thumbMutex);
+	thumb_lru_counter = 0;
+	desiredThumbPath[0] = '\0';
 }
 
 ///////////////////////////////////////
@@ -269,8 +458,10 @@ void initImageLoaderPool(void) {
 		return;
 	}
 
+	SDL_AtomicSet(&thumbAsyncLoaded, 0);
+
 	bgLoadThread = SDL_CreateThread(loadWorker, "BGLoadWorker", &bgQueue);
-	thumbLoadThread = SDL_CreateThread(loadWorker, "ThumbLoadWorker", &thumbQueue);
+	thumbLoadThread = SDL_CreateThread(thumbLoadWorker, "ThumbLoadWorker", &thumbQueue);
 	if (!bgLoadThread || !thumbLoadThread) {
 		fprintf(stderr, "imgloader: failed to create worker threads\n");
 	}
@@ -323,6 +514,9 @@ void cleanupImageLoaderPool(void) {
 	}
 	thumbQueue.tail = NULL;
 	thumbQueue.size = 0;
+
+	// Clear thumbnail cache
+	thumbCacheClear();
 
 	// Acquire and release each mutex before destroying to ensure no thread is in a critical section
 	// This creates a memory barrier and ensures proper synchronization

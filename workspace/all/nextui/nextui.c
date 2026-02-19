@@ -425,6 +425,10 @@ int main(int argc, char* argv[]) {
 			dirty = true;
 		had_bt = has_bt;
 
+		// Check if a thumbnail finished loading asynchronously
+		if (thumbCheckAsyncLoaded())
+			dirty = true;
+
 		int gsanimdir = ANIM_NONE;
 
 		if (currentScreen == SCREEN_QUICKMENU) {
@@ -536,13 +540,11 @@ int main(int argc, char* argv[]) {
 						char thumbpath[1024];
 						snprintf(thumbpath, sizeof(thumbpath), "%s/.media/%s.png", rompath,
 								 res_copy);
-						had_thumb = false;
-						startLoadThumb(thumbpath, onThumbLoaded);
+						had_thumb = startLoadThumb(thumbpath);
 						int max_w = (int)(screen->w - (screen->w * CFG_getGameArtWidth()));
-						if (exists(thumbpath)) {
+						if (had_thumb)
 							ox = (int)(max_w)-SCALE1(BUTTON_MARGIN * 5);
-							had_thumb = true;
-						} else
+						else
 							ox = screen->w;
 					}
 				}
@@ -689,7 +691,7 @@ int main(int argc, char* argv[]) {
 				updateBackgroundLayer();
 			} else if (lastScreen == SCREEN_GAMELIST) {
 				updateBackgroundLayer();
-				renderThumbnail(0);
+				renderThumbnail(1);
 
 				GFX_clearLayers(LAYER_TRANSITION);
 				GFX_clearLayers(LAYER_SCROLLTEXT);
@@ -717,6 +719,11 @@ int main(int argc, char* argv[]) {
 				}
 			} else {
 				SDL_Delay(16);
+			}
+			// Flush layer changes (e.g. new thumbnail) to screen
+			if (getNeedDraw()) {
+				PLAT_GPU_Flip();
+				setNeedDraw(0);
 			}
 			dirty = false;
 		} else {
