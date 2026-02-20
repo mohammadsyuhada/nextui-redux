@@ -183,7 +183,7 @@ int PLAT_wifiScan(struct WIFI_network* networks, int max) {
 			len = sizeof(line) - 1;
 		}
 
-		strncpy(line, current, len);
+		memcpy(line, current, len);
 		line[len] = '\0';
 
 		char features[128];
@@ -390,7 +390,7 @@ bool PLAT_wifiHasCredentials(char* ssid, WifiSecurityType sec) {
 			len = sizeof(line) - 1;
 		}
 
-		strncpy(line, current, len);
+		memcpy(line, current, len);
 		line[len] = '\0';
 
 		wifilog("Parsing line: '%s'\n", line);
@@ -439,7 +439,7 @@ static int wifi_find_network_id(const char* ssid) {
 		size_t len = next ? (size_t)(next - current) : strlen(current);
 		if (len >= sizeof(line))
 			len = sizeof(line) - 1;
-		strncpy(line, current, len);
+		memcpy(line, current, len);
 		line[len] = '\0';
 
 		char* saveptr = NULL;

@@ -70,6 +70,31 @@ void UI_renderListItemText(SDL_Surface* screen, ScrollTextState* scroll_state,
 						   int text_x, int text_y, int max_text_width,
 						   bool selected);
 
+// ---- Badged Pill Rendering ----
+
+typedef struct {
+	int pill_width;		// Width of the title (inner) pill
+	int text_x;			// X position for title text
+	int text_y;			// Y position for title text (row 1)
+	int subtitle_x;		// X position for subtitle text (row 2)
+	int subtitle_y;		// Y position for subtitle text (row 2)
+	int badge_x;		// X position for badge content start
+	int badge_y;		// Y position for badge content (centered)
+	int total_width;	// Total width of title pill + badge area
+	int text_max_width; // Max width for text content
+} ListItemBadgedPos;
+
+// Render a two-row list item pill with optional right-side badge area.
+// Item height is 1.5x PILL_SIZE. Title (title_font) + subtitle (subtitle_font).
+// When badge_width > 0 and selected: THEME_COLOR2 outer capsule + THEME_COLOR1 inner.
+// When badge_width == 0: single THEME_COLOR1 capsule.
+// Caller renders badge content at badge_x, badge_y.
+ListItemBadgedPos UI_renderListItemPillBadged(
+	SDL_Surface* screen, ListLayout* layout,
+	TTF_Font* title_font, TTF_Font* subtitle_font, TTF_Font* badge_font,
+	const char* text, const char* subtitle, char* truncated,
+	int y, bool selected, int badge_width, int extra_subtitle_width);
+
 // ---- Scroll Helpers ----
 
 void UI_adjustListScroll(int selected, int* scroll, int items_per_page);

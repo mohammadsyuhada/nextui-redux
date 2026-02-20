@@ -1,7 +1,6 @@
 #include "wifimenu.hpp"
 #include "keyboardprompt.hpp"
 
-#include <unordered_set>
 #include <map>
 
 #include <mutex>
@@ -152,7 +151,7 @@ void Menu::updater()
                             connected = true;
 
                         MenuList *options;
-                        if (connected)
+                        if (connected) {
                             options = new MenuList(MenuItemType::List, "Options",
                                                 {
                                                     new MenuItem{ListItemType::Button, "Disconnect", "Disconnect from this network.",
@@ -160,11 +159,11 @@ void Menu::updater()
                                                                     { WIFI_disconnect(); selectionDirty = true; return Exit; }},
                                                     new ForgetItem(r, selectionDirty)
                                                 });
-                        else 
-                        if (hasCredentials)
+                        } else if (hasCredentials) {
                             options = new MenuList(MenuItemType::List, "Options", { new ConnectKnownItem(r, selectionDirty), new ForgetItem(r, selectionDirty) });
-                        else
+                        } else {
                             options = new MenuList(MenuItemType::List, "Options", { new ConnectNewItem(r, selectionDirty) });
+                        }
 
                         auto itm = new NetworkItem{r, connected, options};
                         if(connected && !std::string(connection.ip).empty())

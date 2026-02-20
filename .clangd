@@ -8,3 +8,12 @@ CompileFlags:
 Diagnostics:
   Suppress:
     - "-Wunused-*"
+
+---
+
+If:
+  PathMatch: .*\.(cpp|cxx|cc|hpp|hxx)
+
+CompileFlags:
+  Add:
+    - "-std=c++17"

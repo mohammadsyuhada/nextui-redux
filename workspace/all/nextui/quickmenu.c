@@ -6,6 +6,7 @@
 #include "launcher.h"
 #include "types.h"
 #include "ui_components.h"
+#include "ui_connect.h"
 #include <msettings.h>
 
 static Array* quick;		// EntryArray
@@ -21,6 +22,7 @@ static int qm_col = 0;
 static int qm_slot = 0;
 static int qm_shift = 0;
 static int qm_slots = 0;
+static bool qm_connect_active = false;
 
 void QuickMenu_init(int simple_mode) {
 	quick = getQuickEntries(simple_mode);
@@ -44,6 +46,17 @@ void QuickMenu_resetSelection(void) {
 QuickMenuResult QuickMenu_handleInput(unsigned long now) {
 	QuickMenuResult result = {0};
 	result.screen = SCREEN_QUICKMENU;
+
+	// Delegate to connect dialog when active
+	if (qm_connect_active) {
+		ConnectResult cr = ConnectDialog_handleInput();
+		if (cr.action != CONNECT_NONE) {
+			ConnectDialog_quit();
+			qm_connect_active = false;
+		}
+		result.dirty = true;
+		return result;
+	}
 
 	int qm_total = qm_row == QM_ROW_ITEMS ? quick->count : quickActions->count;
 
@@ -70,6 +83,18 @@ QuickMenuResult QuickMenu_handleInput(unsigned long now) {
 		}
 		Entry_open(selected);
 		result.dirty = true;
+	} else if (PAD_justPressed(BTN_X)) {
+		Entry* xselected =
+			qm_row == QM_ROW_TOGGLES ? quickActions->items[qm_col] : NULL;
+		if (xselected && xselected->quickId == QUICK_WIFI) {
+			ConnectDialog_initWifi();
+			qm_connect_active = true;
+			result.dirty = true;
+		} else if (xselected && xselected->quickId == QUICK_BLUETOOTH) {
+			ConnectDialog_initBluetooth();
+			qm_connect_active = true;
+			result.dirty = true;
+		}
 	} else if (PAD_justPressed(BTN_RIGHT)) {
 		if (qm_row == QM_ROW_ITEMS && qm_total > qm_slots) {
 			qm_col++;
@@ -131,6 +156,11 @@ QuickMenuResult QuickMenu_handleInput(unsigned long now) {
 
 void QuickMenu_render(int lastScreen, int show_setting, int ow,
 					  char* folderBgPath, size_t folderBgPathSize) {
+	if (qm_connect_active) {
+		ConnectDialog_render(screen);
+		return;
+	}
+
 	if (lastScreen != SCREEN_QUICKMENU) {
 		GFX_clearLayers(LAYER_BACKGROUND);
 		GFX_clearLayers(LAYER_THUMBNAIL);
@@ -157,10 +187,21 @@ void QuickMenu_render(int lastScreen, int show_setting, int ow,
 		startLoadFolderBackground(newBgPath, onBackgroundLoaded);
 	}
 
-	if (show_setting && !GetHDMI())
-		UI_renderButtonHintBar(screen, (char*[]){"B", "BACK", "A", "OPEN", NULL}, GFX_getHardwareHintPairs(show_setting));
-	else
-		UI_renderButtonHintBar(screen, (char*[]){"B", "BACK", "A", "OPEN", NULL}, NULL);
+	// Button hints: show X=CONNECT when WiFi/BT toggle is focused
+	bool show_connect_hint = (qm_row == QM_ROW_TOGGLES && current &&
+							  (current->quickId == QUICK_WIFI || current->quickId == QUICK_BLUETOOTH));
+
+	if (show_setting && !GetHDMI()) {
+		if (show_connect_hint)
+			UI_renderButtonHintBar(screen, (char*[]){"B", "BACK", "A", "TOGGLE", "X", "CONNECT", NULL}, GFX_getHardwareHintPairs(show_setting));
+		else
+			UI_renderButtonHintBar(screen, (char*[]){"B", "BACK", "A", "OPEN", NULL}, GFX_getHardwareHintPairs(show_setting));
+	} else {
+		if (show_connect_hint)
+			UI_renderButtonHintBar(screen, (char*[]){"B", "BACK", "A", "TOGGLE", "X", "CONNECT", NULL}, NULL);
+		else
+			UI_renderButtonHintBar(screen, (char*[]){"B", "BACK", "A", "OPEN", NULL}, NULL);
+	}
 
 	if (CFG_getShowQuickswitcherUI()) {
 #define MENU_ITEM_SIZE 72	 // item size, top line

@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <string.h>
+#include <math.h>
 #include "ui_list.h"
 
 // Scroll gap for software scrolling
@@ -274,6 +275,105 @@ void UI_renderListItemText(SDL_Surface* screen, ScrollTextState* scroll_state,
 		SDL_SetClipRect(screen, &old_clip);
 	else
 		SDL_SetClipRect(screen, NULL);
+}
+
+// ============================================
+// Badged Pill Rendering
+// ============================================
+
+ListItemBadgedPos UI_renderListItemPillBadged(
+	SDL_Surface* screen, ListLayout* layout,
+	TTF_Font* title_font, TTF_Font* subtitle_font, TTF_Font* badge_font,
+	const char* text, const char* subtitle, char* truncated,
+	int y, bool selected, int badge_width, int extra_subtitle_width) {
+	ListItemBadgedPos pos;
+	int item_h = SCALE1(PILL_SIZE) * 3 / 2;
+
+	// Badge area: badge content + BUTTON_PADDING on each side
+	int badge_area_w = badge_width > 0 ? badge_width + SCALE1(BUTTON_PADDING * 2) : 0;
+
+	// Calculate title pill width (reduced max to leave room for badge area)
+	int title_max_width = layout->max_width - badge_area_w;
+	pos.pill_width = UI_calcListPillWidth(title_font, text, truncated, title_max_width, 0);
+
+	// Expand pill if subtitle is wider than title
+	if (subtitle && subtitle[0]) {
+		int sub_w;
+		TTF_SizeUTF8(subtitle_font, subtitle, &sub_w, NULL);
+		sub_w += extra_subtitle_width;
+		int sub_pill_w = MIN(title_max_width, sub_w + SCALE1(BUTTON_PADDING * 2));
+		if (sub_pill_w > pos.pill_width)
+			pos.pill_width = sub_pill_w;
+	}
+
+	if (selected) {
+		int px = SCALE1(PADDING);
+
+		if (badge_area_w > 0) {
+			// Layer 1: THEME_COLOR2 outer capsule covering title + badge area
+			int total_w = pos.pill_width + badge_area_w;
+			int r = item_h / 3;
+			if (r > total_w / 2)
+				r = total_w / 2;
+			if (item_h - 2 * r > 0) {
+				SDL_FillRect(screen, &(SDL_Rect){px, y + r, total_w, item_h - 2 * r}, THEME_COLOR2);
+			}
+			for (int dy = 0; dy < r; dy++) {
+				int yd = r - dy;
+				int inset = r - (int)sqrtf((float)(r * r - yd * yd));
+				int row_w = total_w - 2 * inset;
+				if (row_w <= 0)
+					continue;
+				SDL_FillRect(screen, &(SDL_Rect){px + inset, y + dy, row_w, 1}, THEME_COLOR2);
+				SDL_FillRect(screen, &(SDL_Rect){px + inset, y + item_h - 1 - dy, row_w, 1}, THEME_COLOR2);
+			}
+		}
+
+		// Layer 2 (or only layer): THEME_COLOR1 inner capsule for title area
+		{
+			int pw = pos.pill_width;
+			int r = item_h / 3;
+			if (r > pw / 2)
+				r = pw / 2;
+			if (item_h - 2 * r > 0) {
+				SDL_FillRect(screen, &(SDL_Rect){px, y + r, pw, item_h - 2 * r}, THEME_COLOR1);
+			}
+			for (int dy = 0; dy < r; dy++) {
+				int yd = r - dy;
+				int inset = r - (int)sqrtf((float)(r * r - yd * yd));
+				int row_w = pw - 2 * inset;
+				if (row_w <= 0)
+					continue;
+				SDL_FillRect(screen, &(SDL_Rect){px + inset, y + dy, row_w, 1}, THEME_COLOR1);
+				SDL_FillRect(screen, &(SDL_Rect){px + inset, y + item_h - 1 - dy, row_w, 1}, THEME_COLOR1);
+			}
+		}
+	}
+
+	// Text positions: two rows vertically centered
+	int text_start_x = SCALE1(PADDING) + SCALE1(BUTTON_PADDING);
+	int title_h = TTF_FontHeight(title_font);
+	int sub_h = TTF_FontHeight(subtitle_font);
+	int total_text_h = title_h + sub_h;
+	int top_gap = (item_h - total_text_h) / 2;
+
+	pos.text_x = text_start_x;
+	pos.text_y = y + top_gap;
+
+	pos.subtitle_x = text_start_x;
+	pos.subtitle_y = y + top_gap + title_h;
+
+	// Badge position (centered vertically in capsule)
+	pos.badge_x = SCALE1(PADDING) + pos.pill_width + SCALE1(BUTTON_PADDING);
+	pos.badge_y = y + (item_h - TTF_FontHeight(badge_font)) / 2;
+
+	// Account for right-side capsule radius reducing usable text width
+	int r = item_h / 2;
+	pos.text_max_width = pos.pill_width - SCALE1(BUTTON_PADDING) - r / 2;
+
+	pos.total_width = pos.pill_width + badge_area_w;
+
+	return pos;
 }
 
 // ============================================
