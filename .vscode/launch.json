@@ -40,8 +40,8 @@
             "osx": {
               "MIMode": "lldb"
             },
-            "cwd": "${workspaceFolder}/workspace/all/minput/build/desktop",
-            "program": "${workspaceFolder}/workspace/all/minput/build/desktop/minput.elf",
+            "cwd": "${workspaceFolder}/workspace/all/input/build/desktop",
+            "program": "${workspaceFolder}/workspace/all/input/build/desktop/input.elf",
             "preLaunchTask": "make desktop",
             "envFile": "${workspaceFolder}/.env_desktop",
         },

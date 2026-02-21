@@ -94,6 +94,9 @@ docker run --rm -v $(pwd)/workspace:/root/workspace ghcr.io/loveretro/tg5040-too
 
 # clock
 docker run --rm -v $(pwd)/workspace:/root/workspace ghcr.io/loveretro/tg5040-toolchain:latest /bin/bash -c 'source ~/.bashrc && cd /root/workspace/all/clock && make PLATFORM=tg5040' && adb push workspace/all/clock/build/tg5040/clock.elf /mnt/SDCARD/Tools/tg5040/Clock.pak/
+
+# input
+docker run --rm -v $(pwd)/workspace:/root/workspace ghcr.io/loveretro/tg5040-toolchain:latest /bin/bash -c 'source ~/.bashrc && cd /root/workspace/all/input && make PLATFORM=tg5040' && adb push workspace/all/input/build/tg5040/input.elf /mnt/SDCARD/Tools/tg5040/Input.pak/
 ```
 
 ## Component Locations
