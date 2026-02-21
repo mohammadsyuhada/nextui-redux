@@ -2,7 +2,6 @@
 #include <stdio.h>
 #include <unistd.h>
 #include <stdbool.h>
-#include <signal.h>
 #include <msettings.h>
 
 #include "defines.h"
@@ -94,7 +93,6 @@ struct Graph {
 #define GRAPH_MAX_PLAUSIBLE_ESTIMATION 54000
 #define GRAPH_ESTIMATED_LINE_GAP 20
 
-static bool quit = false;
 static int current_zoom = 1;
 static int current_page = 0;
 static int current_index;
@@ -109,17 +107,6 @@ static char session_duration[10];
 static char current_percentage[10];
 static char session_left[12] = "calculating";
 static char session_best[10];
-
-static void sigHandler(int sig) {
-	switch (sig) {
-	case SIGINT:
-	case SIGTERM:
-		quit = true;
-		break;
-	default:
-		break;
-	}
-}
 
 static SDL_Surface* screen;
 
@@ -584,8 +571,7 @@ int main(int argc, char* argv[]) {
 	PAD_init();
 	PWR_init();
 
-	signal(SIGINT, sigHandler);
-	signal(SIGTERM, sigHandler);
+	setup_signal_handlers();
 
 	initLayout();
 	compute_graph();
@@ -593,9 +579,7 @@ int main(int argc, char* argv[]) {
 
 	bool dirty = true;
 	int show_setting = 0;
-	int was_online = PWR_isOnline();
-	int had_bt = PLAT_btIsConnected();
-	while (!quit) {
+	while (!app_quit) {
 		GFX_startFrame();
 		PAD_poll();
 
@@ -615,7 +599,7 @@ int main(int argc, char* argv[]) {
 				if (current_page > 0)
 					current_page--;
 			} else if (PAD_justPressed(BTN_B)) {
-				quit = 1;
+				app_quit = true;
 			} else if (PAD_justPressed(BTN_L1) || PAD_justPressed(BTN_L2)) {
 				if (current_zoom > 0) {
 					current_page = 0;
@@ -633,15 +617,8 @@ int main(int argc, char* argv[]) {
 
 		PWR_update(&dirty, &show_setting, NULL, NULL);
 
-		int is_online = PWR_isOnline();
-		if (was_online != is_online)
+		if (UI_statusBarChanged())
 			dirty = true;
-		was_online = is_online;
-
-		int has_bt = PLAT_btIsConnected();
-		if (had_bt != has_bt)
-			dirty = true;
-		had_bt = has_bt;
 
 		if (dirty) {
 			GFX_clear(screen);

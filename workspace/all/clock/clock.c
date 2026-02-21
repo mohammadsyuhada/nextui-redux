@@ -158,8 +158,6 @@ int main(int argc, char* argv[]) {
 
 	bool dirty = true;
 	int show_setting = 0;
-	int was_online = PWR_isOnline();
-	int had_bt = PLAT_btIsConnected();
 	while (!quit) {
 		GFX_startFrame();
 		PAD_poll();
@@ -249,15 +247,8 @@ int main(int argc, char* argv[]) {
 
 		PWR_update(&dirty, NULL, NULL, NULL);
 
-		int is_online = PWR_isOnline();
-		if (was_online != is_online)
+		if (UI_statusBarChanged())
 			dirty = true;
-		was_online = is_online;
-
-		int has_bt = PLAT_btIsConnected();
-		if (had_bt != has_bt)
-			dirty = true;
-		had_bt = has_bt;
 
 		if (dirty) {
 			validate();

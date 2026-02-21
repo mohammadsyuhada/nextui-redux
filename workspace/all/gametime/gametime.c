@@ -2,7 +2,6 @@
 #include <stdio.h>
 #include <unistd.h>
 #include <stdbool.h>
-#include <signal.h>
 #include <msettings.h>
 
 #include "defines.h"
@@ -27,18 +26,6 @@ struct ListLayout {
 	int num_pages;
 } layout = {0};
 
-static bool quit = false;
-
-static void sigHandler(int sig) {
-	switch (sig) {
-	case SIGINT:
-	case SIGTERM:
-		quit = true;
-		break;
-	default:
-		break;
-	}
-}
 
 #define BIG_PILL_SIZE 48
 #define IMG_MARGIN 8
@@ -320,8 +307,7 @@ int main(int argc, char* argv[]) {
 	PAD_init();
 	PWR_init();
 
-	signal(SIGINT, sigHandler);
-	signal(SIGTERM, sigHandler);
+	setup_signal_handlers();
 
 	play_activities = play_activity_find_all();
 	LOG_debug("found %d roms\n", play_activities->count);
@@ -336,7 +322,7 @@ int main(int argc, char* argv[]) {
 
 	bool dirty = true;
 	int show_setting = 0;
-	while (!quit) {
+	while (!app_quit) {
 		GFX_startFrame();
 		PAD_poll();
 
@@ -367,7 +353,7 @@ int main(int argc, char* argv[]) {
 				}
 				dirty = true;
 			} else if (PAD_justPressed(BTN_B)) {
-				quit = 1;
+				app_quit = true;
 			}
 		}
 

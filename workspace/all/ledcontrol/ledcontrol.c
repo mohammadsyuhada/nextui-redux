@@ -214,9 +214,6 @@ int main(int argc, char* argv[]) {
 	int quit = 0;
 	bool dirty = true;
 	int show_setting = 0; // 1=brightness,2=volume,3=colortemp
-	int was_online = PWR_isOnline();
-	int had_bt = PLAT_btIsConnected();
-
 	while (!quit) {
 		GFX_startFrame();
 		uint32_t frame_start = SDL_GetTicks();
@@ -225,15 +222,8 @@ int main(int argc, char* argv[]) {
 
 		PWR_update(&dirty, &show_setting, NULL, NULL);
 
-		int is_online = PWR_isOnline();
-		if (was_online != is_online)
+		if (UI_statusBarChanged())
 			dirty = true;
-		was_online = is_online;
-
-		int has_bt = PLAT_btIsConnected();
-		if (had_bt != has_bt)
-			dirty = true;
-		had_bt = has_bt;
 
 		int numOfLights = 3;
 		if (is_brick)

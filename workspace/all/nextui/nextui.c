@@ -386,9 +386,6 @@ int main(int argc, char* argv[]) {
 	GFX_clear(screen);
 
 	int show_setting = INDICATOR_NONE;
-	int was_online = PWR_isOnline();
-	int had_bt = PLAT_btIsConnected();
-
 	pthread_t cpucheckthread = 0;
 	if (pthread_create(&cpucheckthread, NULL, PLAT_cpu_monitor, NULL) == 0) {
 		pthread_detach(cpucheckthread);
@@ -416,15 +413,8 @@ int main(int argc, char* argv[]) {
 
 		PWR_update(&dirty, &show_setting, NULL, NULL);
 
-		int is_online = PWR_isOnline();
-		if (was_online != is_online)
+		if (UI_statusBarChanged())
 			dirty = true;
-		was_online = is_online;
-
-		int has_bt = PLAT_btIsConnected();
-		if (had_bt != has_bt)
-			dirty = true;
-		had_bt = has_bt;
 
 		// Check if a thumbnail finished loading asynchronously
 		if (thumbCheckAsyncLoaded())

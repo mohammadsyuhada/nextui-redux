@@ -198,6 +198,59 @@ void UI_renderLoadingOverlay(SDL_Surface* dst, const char* title, const char* su
 	}
 }
 
+void UI_handleQuitRequest(SDL_Surface* screen, bool* quit, bool* dirty,
+						  const char* title, const char* subtitle) {
+	static uint32_t start_press_time = 0;
+
+	if (PAD_justPressed(BTN_START))
+		start_press_time = SDL_GetTicks();
+
+	if (PAD_isPressed(BTN_START) && start_press_time &&
+		SDL_GetTicks() - start_press_time >= 500) {
+		start_press_time = 0;
+		PAD_reset();
+
+		int confirmed = 0;
+		int done = 0;
+		while (!done) {
+			GFX_startFrame();
+			PAD_poll();
+			if (PAD_justPressed(BTN_A)) {
+				confirmed = 1;
+				done = 1;
+			} else if (PAD_justPressed(BTN_B)) {
+				done = 1;
+			}
+			UI_renderConfirmDialog(screen, title, subtitle);
+			GFX_flip(screen);
+		}
+		PAD_reset();
+		if (confirmed)
+			*quit = true;
+		*dirty = true;
+		return;
+	}
+
+	if (!PAD_isPressed(BTN_START))
+		start_press_time = 0;
+}
+
+int UI_statusBarChanged(void) {
+	static int was_online = -1;
+	static int had_bt = -1;
+	int is_online = PWR_isOnline();
+	int has_bt = PLAT_btIsConnected();
+	if (was_online == -1) {
+		was_online = is_online;
+		had_bt = has_bt;
+		return 0;
+	}
+	int changed = (was_online != is_online) || (had_bt != has_bt);
+	was_online = is_online;
+	had_bt = has_bt;
+	return changed;
+}
+
 int UI_renderMenuBar(SDL_Surface* screen, const char* title) {
 	// Semi-transparent bar background (cached between calls)
 	static SDL_Surface* menu_bar = NULL;

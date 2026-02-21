@@ -24,6 +24,13 @@ void LOG_note(int level, const char* fmt, ...);
 
 ///////////////////////////////
 
+typedef enum {
+	INDICATOR_NONE = 0,
+	INDICATOR_BRIGHTNESS = 1,
+	INDICATOR_VOLUME = 2,
+	INDICATOR_COLORTEMP = 3,
+} IndicatorType;
+
 #define PAGE_COUNT 2
 #define PAGE_SCALE 3
 #define PAGE_WIDTH (FIXED_WIDTH * PAGE_SCALE)
@@ -352,14 +359,7 @@ int GFX_getButtonWidth(char* hint, char* button);
 void GFX_blitButton(char* hint, char* button, SDL_Surface* dst, SDL_Rect* dst_rect);
 void GFX_blitMessage(TTF_Font* font, char* msg, SDL_Surface* dst, SDL_Rect* dst_rect);
 
-int GFX_blitHardwareGroup(SDL_Surface* dst, int show_setting);
-
-typedef enum {
-	INDICATOR_NONE = 0,
-	INDICATOR_BRIGHTNESS = 1,
-	INDICATOR_VOLUME = 2,
-	INDICATOR_COLORTEMP = 3,
-} IndicatorType;
+int GFX_blitHardwareGroup(SDL_Surface* dst, IndicatorType show_setting);
 
 /**
  * Render a hardware indicator (volume/brightness/colortemp) at a specific position.
@@ -382,7 +382,7 @@ int GFX_blitHardwareIndicator(SDL_Surface* dst, int x, int y, IndicatorType indi
  */
 SDL_Surface* GFX_createScreenFormatSurface(int width, int height);
 
-char** GFX_getHardwareHintPairs(int show_setting);
+char** GFX_getHardwareHintPairs(IndicatorType show_setting);
 
 void GFX_assetRect(int asset, SDL_Rect* dst_rect);
 void GFX_sizeText(TTF_Font* font, const char* str, int leading, int* w, int* h);
@@ -510,9 +510,9 @@ typedef void (*PWR_callback_t)();
 void PWR_init(void);
 void PWR_quit(void);
 
-int PWR_ignoreSettingInput(int btn, int show_setting);
-int PWR_getShowSetting(void);
-void PWR_update(bool* dirty, int* show_setting, PWR_callback_t before_sleep, PWR_callback_t after_sleep);
+int PWR_ignoreSettingInput(int btn, IndicatorType show_setting);
+IndicatorType PWR_getShowSetting(void);
+void PWR_update(bool* dirty, IndicatorType* show_setting, PWR_callback_t before_sleep, PWR_callback_t after_sleep);
 void PWR_updateFrequency(int secs, int updateWifi);
 
 void PWR_disablePowerOff(void);

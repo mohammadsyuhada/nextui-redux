@@ -16,6 +16,20 @@
 
 ///////////////////////////////////////
 
+volatile bool app_quit = false;
+
+void sig_handler(int sig) {
+	if (sig == SIGINT || sig == SIGTERM)
+		app_quit = true;
+}
+
+void setup_signal_handlers(void) {
+	signal(SIGINT, sig_handler);
+	signal(SIGTERM, sig_handler);
+}
+
+///////////////////////////////////////
+
 int prefixMatch(char* pre, const char* str) {
 	return (strncasecmp(pre, str, strlen(pre)) == 0);
 }

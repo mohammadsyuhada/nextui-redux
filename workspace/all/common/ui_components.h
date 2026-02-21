@@ -1,6 +1,7 @@
 #ifndef UI_COMPONENTS_H
 #define UI_COMPONENTS_H
 
+#include <stdbool.h>
 #include "sdl.h"
 
 void UI_renderConfirmDialog(SDL_Surface* dst, const char* title,
@@ -17,6 +18,8 @@ void UI_renderCenteredMessage(SDL_Surface* dst, const char* message);
 // Returns the width of the hardware group (ow) for callers that need it.
 int UI_renderButtonHintBar(SDL_Surface* dst, char** pairs);
 
+int UI_statusBarChanged(void);
+
 int UI_renderMenuBar(SDL_Surface* screen, const char* title);
 
 // Render a splash screen with a title and "Loading..." subtitle, then flip.
@@ -26,5 +29,11 @@ void UI_showSplashScreen(SDL_Surface* screen, const char* title);
 // Render a full-screen semi-transparent overlay with title/subtitle text.
 // Used for blocking operations (e.g. WiFi/BT toggle) with a cancel hint.
 void UI_renderLoadingOverlay(SDL_Surface* dst, const char* title, const char* subtitle);
+
+// Handle long-press BTN_START to quit with a confirmation dialog.
+// Call every frame after PAD_poll(). When the long-press threshold is reached,
+// shows a blocking confirmation dialog. Sets *quit = true on confirm, *dirty = 1 on return.
+void UI_handleQuitRequest(SDL_Surface* screen, bool* quit, bool* dirty,
+						  const char* title, const char* subtitle);
 
 #endif // UI_COMPONENTS_H

@@ -7,7 +7,6 @@
 
 #include <msettings.h>
 #include <pthread.h>
-#include <signal.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -18,13 +17,14 @@
 #include "defines.h"
 #include "http.h"
 #include "ui_components.h"
+#include "utils.h"
 
 // ============================================
 // Configuration
 // ============================================
 
-#define UPDATER_REPO_OWNER "UncleJunVIP"
-#define UPDATER_REPO_NAME "NextUI-Redux"
+#define UPDATER_REPO_OWNER "mohammadsyuhada"
+#define UPDATER_REPO_NAME "nextui-redux"
 #define VERSION_FILE_PATH "/mnt/SDCARD/.system/version.txt"
 #define DOWNLOAD_PATH "/tmp/nextui-update.zip"
 #define EXTRACT_DEST "/mnt/SDCARD/"
@@ -63,20 +63,10 @@ static AppState app_state = STATE_CHECKING;
 static char error_msg[256] = "";
 static char current_version[128] = "";
 static char current_sha[64] = "";
+static char current_tag[128] = "";
 static ReleaseInfo latest_release = {0};
-static volatile int async_done = 0;
-static volatile int async_success = 0;
-
-// ============================================
-// Signal handler
-// ============================================
-
-static volatile int app_quit = 0;
-
-static void sig_handler(int sig) {
-	if (sig == SIGINT || sig == SIGTERM)
-		app_quit = 1;
-}
+static volatile bool async_done = false;
+static volatile bool async_success = false;
 
 // ============================================
 // JSON helpers (minimal strstr-based parsing)
@@ -239,6 +229,12 @@ static void read_current_version(void) {
 	}
 	current_sha[strcspn(current_sha, "\r\n")] = '\0';
 
+	// Line 3: tag name
+	if (!fgets(current_tag, sizeof(current_tag), f)) {
+		current_tag[0] = '\0';
+	}
+	current_tag[strcspn(current_tag, "\r\n")] = '\0';
+
 	fclose(f);
 }
 
@@ -265,8 +261,8 @@ static void on_release_info(HTTP_Response* response, void* userdata) {
 		if (response && response->error)
 			snprintf(error_msg, sizeof(error_msg), "%.250s", response->error);
 		__sync_synchronize();
-		async_success = 0;
-		async_done = 1;
+		async_success = false;
+		async_done = true;
 		if (response)
 			HTTP_freeResponse(response);
 		return;
@@ -277,8 +273,8 @@ static void on_release_info(HTTP_Response* response, void* userdata) {
 						  sizeof(latest_release.tag_name))) {
 		snprintf(error_msg, sizeof(error_msg), "Could not parse release info");
 		__sync_synchronize();
-		async_success = 0;
-		async_done = 1;
+		async_success = false;
+		async_done = true;
 		HTTP_freeResponse(response);
 		return;
 	}
@@ -289,8 +285,8 @@ static void on_release_info(HTTP_Response* response, void* userdata) {
 						  sizeof(latest_release.commit_sha))) {
 		snprintf(error_msg, sizeof(error_msg), "Could not determine release commit");
 		__sync_synchronize();
-		async_success = 0;
-		async_done = 1;
+		async_success = false;
+		async_done = true;
 		HTTP_freeResponse(response);
 		return;
 	}
@@ -306,8 +302,8 @@ static void on_release_info(HTTP_Response* response, void* userdata) {
 							sizeof(latest_release.download_url))) {
 		snprintf(error_msg, sizeof(error_msg), "No download found in release");
 		__sync_synchronize();
-		async_success = 0;
-		async_done = 1;
+		async_success = false;
+		async_done = true;
 		HTTP_freeResponse(response);
 		return;
 	}
@@ -315,8 +311,8 @@ static void on_release_info(HTTP_Response* response, void* userdata) {
 	HTTP_freeResponse(response);
 
 	__sync_synchronize();
-	async_success = 1;
-	async_done = 1;
+	async_success = true;
+	async_done = true;
 }
 
 // ============================================
@@ -355,14 +351,14 @@ static void* download_thread(void* arg) {
 	if (ret != 0) {
 		snprintf(error_msg, sizeof(error_msg), "Download failed");
 		__sync_synchronize();
-		async_success = 0;
-		async_done = 1;
+		async_success = false;
+		async_done = true;
 		return NULL;
 	}
 
 	__sync_synchronize();
-	async_success = 1;
-	async_done = 1;
+	async_success = true;
+	async_done = true;
 	return NULL;
 }
 
@@ -375,23 +371,48 @@ static void* extract_thread(void* arg) {
 	if (ret != 0) {
 		snprintf(error_msg, sizeof(error_msg), "Extraction failed");
 		__sync_synchronize();
-		async_success = 0;
-		async_done = 1;
+		async_success = false;
+		async_done = true;
 		return NULL;
 	}
 
-	// Clean up zip file
 	unlink(DOWNLOAD_PATH);
 
+	// Derive release name from zip filename (e.g. "NextUI-20260212-0-all.zip" -> "NextUI-20260212-0")
+	char release_name[128] = "Unknown";
+	const char* slash = strrchr(latest_release.download_url, '/');
+	if (slash) {
+		slash++; // skip '/'
+		strncpy(release_name, slash, sizeof(release_name) - 1);
+		release_name[sizeof(release_name) - 1] = '\0';
+		// Strip suffix: -all.zip, -base.zip, -extras.zip
+		const char* suffixes[] = {"-all.zip", "-base.zip", "-extras.zip"};
+		for (int i = 0; i < 3; i++) {
+			size_t name_len = strlen(release_name);
+			size_t suf_len = strlen(suffixes[i]);
+			if (name_len > suf_len && strcmp(release_name + name_len - suf_len, suffixes[i]) == 0) {
+				release_name[name_len - suf_len] = '\0';
+				break;
+			}
+		}
+	}
+
+	FILE* vf = fopen(VERSION_FILE_PATH, "w");
+	if (vf) {
+		fprintf(vf, "%s\n%s\n%s\n", release_name,
+				latest_release.commit_sha, latest_release.tag_name);
+		fclose(vf);
+	}
+
 	__sync_synchronize();
-	async_success = 1;
-	async_done = 1;
+	async_success = true;
+	async_done = true;
 	return NULL;
 }
 
 static void start_download(void) {
-	async_done = 0;
-	async_success = 0;
+	async_done = false;
+	async_success = false;
 	app_state = STATE_DOWNLOADING;
 
 	pthread_t tid;
@@ -400,8 +421,8 @@ static void start_download(void) {
 }
 
 static void start_extract(void) {
-	async_done = 0;
-	async_success = 0;
+	async_done = false;
+	async_success = false;
 	app_state = STATE_EXTRACTING;
 
 	pthread_t tid;
@@ -514,33 +535,24 @@ int main(int argc, char* argv[]) {
 	(void)argc;
 	(void)argv;
 
-	signal(SIGINT, sig_handler);
-	signal(SIGTERM, sig_handler);
-
-	PWR_setCPUSpeed(CPU_SPEED_MENU);
-
 	SDL_Surface* screen = GFX_init(MODE_MAIN);
-	PAD_init();
-	PWR_init();
-	InitSettings();
-
-	// Show splash while we start up
 	UI_showSplashScreen(screen, "Updater");
 
-	// Read current version info
+	InitSettings();
+	PWR_init();
+	PAD_init();
+
+	setup_signal_handlers();
 	read_current_version();
 
-	// Start async update check
 	app_state = STATE_CHECKING;
-	async_done = 0;
-	async_success = 0;
+	async_done = false;
+	async_success = false;
 	check_for_updates();
 
-	int quit = 0;
+	bool quit = 0;
 	bool dirty = true;
-	int show_setting = 0;
-	int was_online = PWR_isOnline();
-	int had_bt = PLAT_btIsConnected();
+	IndicatorType show_setting = INDICATOR_NONE;
 
 	while (!quit && !app_quit) {
 		GFX_startFrame();
@@ -573,7 +585,7 @@ int main(int argc, char* argv[]) {
 				} else {
 					app_state = STATE_ERROR;
 				}
-				async_done = 0;
+				async_done = false;
 				break;
 
 			case STATE_DOWNLOADING:
@@ -582,7 +594,7 @@ int main(int argc, char* argv[]) {
 				} else {
 					app_state = STATE_ERROR;
 				}
-				async_done = 0;
+				async_done = false;
 				break;
 
 			case STATE_EXTRACTING:
@@ -592,16 +604,15 @@ int main(int argc, char* argv[]) {
 				} else {
 					app_state = STATE_ERROR;
 				}
-				async_done = 0;
+				async_done = false;
 				break;
 
 			default:
-				async_done = 0;
+				async_done = false;
 				break;
 			}
 		}
 
-		// Input handling based on current state
 		switch (app_state) {
 		case STATE_UP_TO_DATE:
 		case STATE_ERROR:
@@ -645,15 +656,8 @@ int main(int argc, char* argv[]) {
 
 		PWR_update(&dirty, &show_setting, NULL, NULL);
 
-		int is_online = PWR_isOnline();
-		if (was_online != is_online)
+		if (UI_statusBarChanged())
 			dirty = true;
-		was_online = is_online;
-
-		int has_bt = PLAT_btIsConnected();
-		if (had_bt != has_bt)
-			dirty = true;
-		had_bt = has_bt;
 
 		if (dirty) {
 			render_state(screen, show_setting);

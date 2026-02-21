@@ -15,7 +15,6 @@
 #include "settings_bt.h"
 #include "ui_components.h"
 
-#include <signal.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -25,17 +24,6 @@
 // ============================================
 
 #define BUSYBOX_STOCK_VERSION "1.27.2"
-
-// ============================================
-// Signal handler
-// ============================================
-
-static volatile int app_quit = 0;
-
-static void sig_handler(int sig) {
-	if (sig == SIGINT || sig == SIGTERM)
-		app_quit = 1;
-}
 
 // ============================================
 // Device detection
@@ -1731,18 +1719,16 @@ static void build_menu_tree(const DeviceInfo* dev) {
 }
 
 // ============================================
-// main()
+// Main
 // ============================================
 
 int main(int argc, char* argv[]) {
 	(void)argc;
 	(void)argv;
 
-	// Initialize display and show splash screen ASAP
 	SDL_Surface* screen = GFX_init(MODE_MAIN);
 	UI_showSplashScreen(screen, "Settings");
 
-	// Now do the slower initialization
 	DeviceInfo dev = device_detect();
 
 	char version[128];
@@ -1754,8 +1740,7 @@ int main(int argc, char* argv[]) {
 	PAD_init();
 	TIME_init();
 
-	signal(SIGINT, sig_handler);
-	signal(SIGTERM, sig_handler);
+	setup_signal_handlers();
 
 	/* Generate dynamic label arrays */
 	init_dynamic_labels();
@@ -1775,70 +1760,28 @@ int main(int argc, char* argv[]) {
 	settings_menu_init();
 	settings_menu_push(&main_page);
 
-	int dirty = 1;
-	int show_setting = 0;
-	int was_online = PWR_isOnline();
-	int had_bt = PLAT_btIsConnected();
-	int quit = 0;
-	uint32_t start_press_time = 0;
+	bool quit = false;
+	bool dirty = true;
+	IndicatorType show_setting = INDICATOR_NONE;
 
 	while (!quit && !app_quit) {
 		GFX_startFrame();
 		PAD_poll();
 
-		// Long-press START to exit with confirmation
-		if (PAD_justPressed(BTN_START))
-			start_press_time = SDL_GetTicks();
-		if (PAD_isPressed(BTN_START) && start_press_time &&
-			SDL_GetTicks() - start_press_time >= 500) {
-			start_press_time = 0;
-			PAD_reset();
+		UI_handleQuitRequest(screen, &quit, &dirty, "Exit Settings?",
+							 "Your settings are automatically saved");
+		settings_menu_handle_input(&quit, &dirty);
 
-			// Show confirmation dialog
-			int confirmed = 0;
-			int dialog_done = 0;
-			while (!dialog_done) {
-				GFX_startFrame();
-				PAD_poll();
-				if (PAD_justPressed(BTN_A)) {
-					confirmed = 1;
-					dialog_done = 1;
-				} else if (PAD_justPressed(BTN_B)) {
-					dialog_done = 1;
-				}
-				UI_renderConfirmDialog(screen, "Exit Settings?",
-									   "Your settings are automatically saved");
-				GFX_flip(screen);
-			}
-			PAD_reset();
-			if (confirmed) {
-				quit = 1;
-				continue;
-			}
-			dirty = 1;
-			continue;
-		}
-		if (!PAD_isPressed(BTN_START))
-			start_press_time = 0;
+		PWR_update(&dirty, &show_setting, NULL, NULL);
 
-		quit = settings_menu_handle_input(&dirty);
-		PWR_update((bool*)&dirty, &show_setting, NULL, NULL);
-
-		int is_online = PWR_isOnline();
-		if (was_online != is_online)
-			dirty = 1;
-		was_online = is_online;
-
-		int has_bt = PLAT_btIsConnected();
-		if (had_bt != has_bt)
-			dirty = 1;
-		had_bt = has_bt;
+		if (UI_statusBarChanged())
+			dirty = true;
 
 		if (dirty) {
 			GFX_clear(screen);
 			settings_menu_render(screen, show_setting);
 			GFX_flip(screen);
-			dirty = 0;
+			dirty = false;
 		} else {
 			GFX_sync();
 		}

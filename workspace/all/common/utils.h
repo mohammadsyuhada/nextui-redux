@@ -4,6 +4,11 @@
 #include <stddef.h>
 #include <stdint.h>
 #include <stdbool.h>
+#include <signal.h>
+
+extern volatile bool app_quit;
+void sig_handler(int sig);
+void setup_signal_handlers(void);
 
 int prefixMatch(char* pre, const char* str);
 int suffixMatch(char* suf, const char* str);

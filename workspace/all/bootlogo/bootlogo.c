@@ -3,28 +3,12 @@
 #include <stdbool.h>
 #include <stdlib.h>
 #include <dirent.h>
-#include <signal.h>
 #include <msettings.h>
 
 #include "defines.h"
 #include "api.h"
 #include "ui_components.h"
 #include "utils.h"
-
-static bool quit = false;
-
-static void sigHandler(int sig) {
-	switch (sig) {
-	case SIGINT:
-	case SIGTERM:
-		quit = true;
-		break;
-	default:
-		break;
-	}
-}
-
-static SDL_Surface* screen;
 
 SDL_Surface** images;
 char** image_paths;
@@ -33,17 +17,13 @@ static int count = 0;
 
 int loadImages() {
 	char* device = getenv("DEVICE");
-	// This needs to get a bit more flexible down the line, but for now we either expect the files
-	// in the pak root directory or in the "brick" subfolder.
 	char basepath[MAX_PATH];
-	if (exactMatch("brick", device)) {
+	if (device && (exactMatch("brick", device) || exactMatch("smartpros", device))) {
 		snprintf(basepath, sizeof(basepath), "%s/Bootlogo.pak/brick/", TOOLS_PATH);
 	} else {
 		snprintf(basepath, sizeof(basepath), "%s/Bootlogo.pak/smartpro/", TOOLS_PATH);
 	}
 
-	// grab all bmp files in the directory and load them with IMG_Load,
-	// keep them in an array of SDL_Surface pointers
 	DIR* dir;
 	struct dirent* ent;
 	if ((dir = opendir(basepath)) != NULL) {
@@ -54,16 +34,22 @@ int loadImages() {
 				SDL_Surface* bmp = IMG_Load(path);
 				if (bmp) {
 					count++;
-					images = realloc(images, sizeof(SDL_Surface*) * count);
+					SDL_Surface** new_images = realloc(images, sizeof(SDL_Surface*) * count);
+					char** new_paths = realloc(image_paths, sizeof(char*) * count);
+					if (!new_images || !new_paths) {
+						SDL_FreeSurface(bmp);
+						count--;
+						break;
+					}
+					images = new_images;
+					image_paths = new_paths;
 					images[count - 1] = bmp;
-					image_paths = realloc(image_paths, sizeof(char*) * count);
 					image_paths[count - 1] = strdup(path);
 				}
 			}
 		}
 		closedir(dir);
 	} else {
-		// could not open directory
 		LOG_error("could not open directory");
 		if (CFG_getHaptics()) {
 			VIB_triplePulse(5, 150, 200);
@@ -76,82 +62,67 @@ int loadImages() {
 void unloadImages() {
 	for (int i = 0; i < count; i++) {
 		SDL_FreeSurface(images[i]);
+		free(image_paths[i]);
 	}
 	free(images);
+	free(image_paths);
 }
 
+// ============================================
+// Main
+// ============================================
+
 int main(int argc, char* argv[]) {
+	(void)argc;
+	(void)argv;
+
+	SDL_Surface* screen = GFX_init(MODE_MAIN);
+	UI_showSplashScreen(screen, "Bootlogo");
+
 	InitSettings();
-
-	PWR_setCPUSpeed(CPU_SPEED_MENU);
-
-	screen = GFX_init(MODE_MAIN);
-	PAD_init();
 	PWR_init();
+	PAD_init();
 
-	signal(SIGINT, sigHandler);
-	signal(SIGTERM, sigHandler);
+	setup_signal_handlers();
 
 	loadImages();
 
 	bool dirty = true;
-	int show_setting = 0;
-	int was_online = PWR_isOnline();
-	int had_bt = PLAT_btIsConnected();
-	while (!quit) {
+	IndicatorType show_setting = INDICATOR_NONE;
+
+	while (!app_quit) {
 		GFX_startFrame();
 		PAD_poll();
 
-		// This might be too harsh, but ignore all combos with MENU (most likely a shortcut for someone else)
-		if (PAD_justPressed(BTN_MENU)) {
-			// ?
-		} else {
-			if (PAD_justRepeated(BTN_LEFT)) {
-				selected -= 1;
-				if (selected < 0)
-					selected = count - 1;
-				dirty = true;
-			} else if (PAD_justRepeated(BTN_RIGHT)) {
-				selected += 1;
-				if (selected >= count)
-					selected = 0;
-				dirty = true;
-			} else if (PAD_justPressed(BTN_A)) {
-				// apply with system calls
-				// BOOT_PATH=/mnt/boot/
-				// mkdir -p $BOOT_PATH
-				// mount -t vfat /dev/mmcblk0p1 $BOOT_PATH
-				// cp $LOGO_PATH $BOOT_PATH
-				// sync
-				// umount $BOOT_PATH
-				// reboot
-				char* boot_path = "/mnt/boot/";
-				char* logo_path = image_paths[selected];
-				char cmd[256];
-				snprintf(cmd, sizeof(cmd), "mkdir -p %s && mount -t vfat /dev/mmcblk0p1 %s && cp \"%s\" %s/bootlogo.bmp && sync && umount %s && reboot", boot_path, boot_path, logo_path, boot_path, boot_path);
-				system(cmd);
-			} else if (PAD_justPressed(BTN_B)) {
-				quit = 1;
-			}
+		if (PAD_justRepeated(BTN_LEFT)) {
+			selected -= 1;
+			if (selected < 0)
+				selected = count - 1;
+			dirty = true;
+		} else if (PAD_justRepeated(BTN_RIGHT)) {
+			selected += 1;
+			if (selected >= count)
+				selected = 0;
+			dirty = true;
+		} else if (PAD_justPressed(BTN_A) && count > 0) {
+			char* boot_path = "/mnt/boot/";
+			char* logo_path = image_paths[selected];
+			char cmd[512];
+			snprintf(cmd, sizeof(cmd), "mkdir -p %s && mount -t vfat /dev/mmcblk0p1 %s && cp '%s' %s/bootlogo.bmp && sync && umount %s && reboot", boot_path, boot_path, logo_path, boot_path, boot_path);
+			system(cmd);
+		} else if (PAD_justPressed(BTN_B)) {
+			app_quit = true;
 		}
 
-		PWR_update(&dirty, NULL, NULL, NULL);
+		PWR_update(&dirty, &show_setting, NULL, NULL);
 
-		int is_online = PWR_isOnline();
-		if (was_online != is_online)
+		if (UI_statusBarChanged())
 			dirty = true;
-		was_online = is_online;
-
-		int has_bt = PLAT_btIsConnected();
-		if (had_bt != has_bt)
-			dirty = true;
-		had_bt = has_bt;
 
 		if (dirty) {
 			GFX_clear(screen);
 
 			if (count > 0) {
-				// render the selected image, centered on screen
 				SDL_Surface* image = images[selected];
 				SDL_Rect image_rect = {
 					screen->w / 2 - image->w / 2,
@@ -161,6 +132,7 @@ int main(int argc, char* argv[]) {
 				SDL_BlitSurface(image, NULL, screen, &image_rect);
 			}
 
+			UI_renderMenuBar(screen, "Bootlogo");
 			UI_renderButtonHintBar(screen, (char*[]){"A", "SET", "B", "BACK", "L/R", "SCROLL", NULL});
 
 			GFX_flip(screen);

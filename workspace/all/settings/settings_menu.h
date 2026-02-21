@@ -2,6 +2,7 @@
 #define SETTINGS_MENU_H
 
 #include <pthread.h>
+#include <stdbool.h>
 #include "sdl.h"
 
 // Forward declarations
@@ -101,8 +102,7 @@ void settings_menu_pop(void);
 SettingsPage* settings_menu_current(void);
 int settings_menu_depth(void);
 
-// Returns 1 if the app should quit
-int settings_menu_handle_input(int* dirty);
+void settings_menu_handle_input(bool* quit, bool* dirty);
 
 // Render the current page
 void settings_menu_render(SDL_Surface* screen, int show_setting);

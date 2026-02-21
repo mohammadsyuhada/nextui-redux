@@ -172,10 +172,12 @@ static void cycle_item_prev(SettingItem* item, int step) {
 // Input Handling
 // ============================================
 
-int settings_menu_handle_input(int* dirty) {
+void settings_menu_handle_input(bool* quit, bool* dirty) {
 	SettingsPage* page = settings_menu_current();
-	if (!page)
-		return 1;
+	if (!page) {
+		*quit = true;
+		return;
+	}
 
 	int has_lock = (page->dynamic_start >= 0);
 	if (has_lock)
@@ -185,7 +187,7 @@ int settings_menu_handle_input(int* dirty) {
 
 	// Redraw when dynamic page has pending updates (scanner or async toggle)
 	if (page->needs_layout)
-		*dirty = 1;
+		*dirty = true;
 
 	// Tick callback (for dynamic pages)
 	if (page->on_tick)
@@ -198,11 +200,11 @@ int settings_menu_handle_input(int* dirty) {
 		// Allow back/exit even with no items
 		if (PAD_justPressed(BTN_B)) {
 			settings_menu_pop();
-			*dirty = 1;
+			*dirty = true;
 			if (stack_depth <= 0)
-				return 1;
+				*quit = true;
 		}
-		return 0;
+		return;
 	}
 
 	// Clamp selection
@@ -294,12 +296,11 @@ int settings_menu_handle_input(int* dirty) {
 		settings_menu_pop();
 		changed = 1;
 		if (stack_depth <= 0)
-			return 1;
+			*quit = true;
 	}
 
 	if (changed)
-		*dirty = 1;
-	return 0;
+		*dirty = true;
 }
 
 // ============================================
@@ -556,46 +557,46 @@ static void render_hints_for_page(SDL_Surface* screen, SettingsPage* page) {
 	int is_root = (stack_depth <= 1);
 
 	char* back_label = is_root ? "EXIT" : "BACK";
+	char* hints[8] = {NULL};
 
 	if (!sel) {
-		char* right[] = {"B", back_label, NULL};
-		UI_renderButtonHintBar(screen, right);
-		return;
-	}
-
-	if (page->is_list) {
-		char* right[] = {"B", back_label, "A", "OPEN", NULL};
-		UI_renderButtonHintBar(screen, right);
+		char* h[] = {"B", back_label, NULL};
+		memcpy(hints, h, sizeof(h));
+	} else if (page->is_list) {
+		char* h[] = {"B", back_label, "A", "OPEN", NULL};
+		memcpy(hints, h, sizeof(h));
 	} else {
 		switch (sel->type) {
 		case ITEM_CYCLE:
 		case ITEM_COLOR: {
-			char* right[] = {"LEFT/RIGHT", "CHANGE", "B", back_label, NULL};
-			UI_renderButtonHintBar(screen, right);
+			char* h[] = {"LEFT/RIGHT", "CHANGE", "B", back_label, NULL};
+			memcpy(hints, h, sizeof(h));
 			break;
 		}
 		case ITEM_BUTTON: {
-			char* right[] = {"B", back_label, "A", "SELECT", NULL};
-			UI_renderButtonHintBar(screen, right);
+			char* h[] = {"B", back_label, "A", "SELECT", NULL};
+			memcpy(hints, h, sizeof(h));
 			break;
 		}
 		case ITEM_SUBMENU: {
-			char* right[] = {"B", back_label, "A", "OPEN", NULL};
-			UI_renderButtonHintBar(screen, right);
+			char* h[] = {"B", back_label, "A", "OPEN", NULL};
+			memcpy(hints, h, sizeof(h));
 			break;
 		}
 		case ITEM_TEXT_INPUT: {
-			char* right[] = {"B", back_label, "A", "EDIT", NULL};
-			UI_renderButtonHintBar(screen, right);
+			char* h[] = {"B", back_label, "A", "EDIT", NULL};
+			memcpy(hints, h, sizeof(h));
 			break;
 		}
 		default: {
-			char* right[] = {"B", back_label, NULL};
-			UI_renderButtonHintBar(screen, right);
+			char* h[] = {"B", back_label, NULL};
+			memcpy(hints, h, sizeof(h));
 			break;
 		}
 		}
 	}
+
+	UI_renderButtonHintBar(screen, hints);
 }
 
 // ============================================

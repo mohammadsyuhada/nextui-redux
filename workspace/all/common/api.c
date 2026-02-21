@@ -169,7 +169,7 @@ static struct PWR_Context {
 	SDL_atomic_t update_secs;
 	SDL_atomic_t poll_network_status;
 
-	int show_setting;
+	IndicatorType show_setting;
 } pwr = {0};
 
 static struct SND_Context {
@@ -1771,7 +1771,7 @@ SDL_Surface* GFX_createScreenFormatSurface(int width, int height) {
 		gfx.screen->format->format);
 }
 
-int GFX_blitHardwareGroup(SDL_Surface* dst, int show_setting) {
+int GFX_blitHardwareGroup(SDL_Surface* dst, IndicatorType show_setting) {
 	int ox;
 	int ow = 0;
 
@@ -1874,7 +1874,7 @@ int GFX_blitHardwareGroup(SDL_Surface* dst, int show_setting) {
 
 	return ow;
 }
-char** GFX_getHardwareHintPairs(int show_setting) {
+char** GFX_getHardwareHintPairs(IndicatorType show_setting) {
 	static char* brightness_pairs[] = {BRIGHTNESS_BUTTON_LABEL, "BRIGHTNESS", NULL};
 	static char* colortemp_pairs[] = {BRIGHTNESS_BUTTON_LABEL, "COLOR TEMP", NULL};
 	static char* default_pairs[] = {"MNU", "BRGHT", "SEL", "CLTMP", NULL};
@@ -3174,17 +3174,17 @@ void PWR_quit(void) {
 	pthread_join(pwr.battery_pt, NULL);
 }
 
-int PWR_ignoreSettingInput(int btn, int show_setting) {
+int PWR_ignoreSettingInput(int btn, IndicatorType show_setting) {
 	return show_setting && (btn == BTN_MOD_PLUS || btn == BTN_MOD_MINUS);
 }
 
-int PWR_getShowSetting(void) {
-	return GetHDMI() ? 0 : pwr.show_setting;
+IndicatorType PWR_getShowSetting(void) {
+	return GetHDMI() ? INDICATOR_NONE : pwr.show_setting;
 }
 
-void PWR_update(bool* _dirty, int* _show_setting, PWR_callback_t before_sleep, PWR_callback_t after_sleep) {
+void PWR_update(bool* _dirty, IndicatorType* _show_setting, PWR_callback_t before_sleep, PWR_callback_t after_sleep) {
 	bool dirty = _dirty ? *_dirty : false;
-	int show_setting = _show_setting ? *_show_setting : 0;
+	IndicatorType show_setting = _show_setting ? *_show_setting : INDICATOR_NONE;
 
 	static uint32_t last_input_at = 0;	   // timestamp of last input (autosleep)
 	static uint32_t checked_charge_at = 0; // timestamp of last time checking charge
