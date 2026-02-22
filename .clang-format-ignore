@@ -1,4 +1,6 @@
 workspace/all/minarch/libretro-common/**
+workspace/all/musicplayer/audio/**
+workspace/all/musicplayer/include/**
 workspace/nextui-music-player/**
 workspace/nextui-video-player/**
 workspace/nextui-netplay/**

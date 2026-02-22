@@ -240,18 +240,24 @@ int GFX_loadSystemFont(const char* fontPath) {
 	if (!TTF_WasInit())
 		TTF_Init();
 
+	TTF_CloseFont(font.xlarge);
+	TTF_CloseFont(font.title);
 	TTF_CloseFont(font.large);
 	TTF_CloseFont(font.medium);
 	TTF_CloseFont(font.small);
 	TTF_CloseFont(font.tiny);
 	TTF_CloseFont(font.micro);
 
+	font.xlarge = TTF_OpenFont(fontPath, SCALE1(FONT_XLARGE));
+	font.title = TTF_OpenFont(fontPath, SCALE1(FONT_TITLE));
 	font.large = TTF_OpenFont(fontPath, SCALE1(FONT_LARGE));
 	font.medium = TTF_OpenFont(fontPath, SCALE1(FONT_MEDIUM));
 	font.small = TTF_OpenFont(fontPath, SCALE1(FONT_SMALL));
 	font.tiny = TTF_OpenFont(fontPath, SCALE1(FONT_TINY));
 	font.micro = TTF_OpenFont(fontPath, SCALE1(FONT_MICRO));
 
+	TTF_SetFontStyle(font.xlarge, TTF_STYLE_BOLD);
+	TTF_SetFontStyle(font.title, TTF_STYLE_BOLD);
 	TTF_SetFontStyle(font.large, TTF_STYLE_BOLD);
 	TTF_SetFontStyle(font.medium, TTF_STYLE_BOLD);
 	TTF_SetFontStyle(font.small, TTF_STYLE_BOLD);

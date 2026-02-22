@@ -95,6 +95,8 @@
 #define PADDING 10 // PILL_SIZE / 3 (or non-integer part of the previous calculatiom divided by three)
 #endif
 
+#define FONT_XLARGE 36 // extra large heading
+#define FONT_TITLE 28  // title / heading
 #define FONT_LARGE 16  // menu
 #define FONT_MEDIUM 14 // single char button label
 #define FONT_SMALL 12  // button hint

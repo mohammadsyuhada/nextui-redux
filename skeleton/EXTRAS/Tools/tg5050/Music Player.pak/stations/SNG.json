@@ -1,0 +1,84 @@
+{
+    "country": "Singapore",
+    "code": "SNG",
+    "stations": [
+        {
+            "name": "Kiss FM",
+            "url": "https://playerservices.streamtheworld.com/api/livestream-redirect/KISS_92.mp3",
+            "genre": "Adult-Contemporary",
+            "slogan": "All the great songs in one place"
+        },
+        {
+            "name": "One FM",
+            "url": "https://playerservices.streamtheworld.com/api/livestream-redirect/ONE_FM_913.mp3",
+            "genre": "Hits Rock",
+            "slogan": "Good Times, Greatest Hits"
+        },
+        {
+            "name": "Power 98",
+            "url": "https://playerservices.streamtheworld.com/api/livestream-redirect/POWER98_LOVESONGS.mp3",
+            "genre": "Love-Songs",
+            "slogan": "The Music You Love"
+        },
+        {
+            "name": "987 FM",
+            "url": "https://playerservices.streamtheworld.com/api/livestream-redirect/987FM.mp3",
+            "genre": "Adult-Contemporary",
+            "slogan": "Singapores No.1 Hit Music Station"
+        },
+        {
+            "name": "Money FM",
+            "url": "https://playerservices.streamtheworld.com/api/livestream-redirect/MONEY_893.mp3",
+            "genre": "News Talk",
+            "slogan": "Stay Ahead"
+        },
+        {
+            "name": "Symphony 92.4 FM",
+            "url": "https://playerservices.streamtheworld.com/api/livestream-redirect/SYMPHONY924.mp3",
+            "genre": "Classical Jazz",
+            "slogan": "Only the Finest Music"
+        },
+        {
+            "name": "Warna FM",
+            "url": "https://playerservices.streamtheworld.com/api/livestream-redirect/WARNA942FM.mp3",
+            "genre": "Pop Asian",
+            "slogan": "Serentak Semasa"
+        },
+        {
+            "name": "938 Now",
+            "url": "https://playerservices.streamtheworld.com/api/livestream-redirect/938NOW.mp3",
+            "genre": "News Talk",
+            "slogan": "In The Know, On The Go"
+        },
+        {
+            "name": "Class FM",
+            "url": "https://playerservices.streamtheworld.com/api/livestream-redirect/CLASS95.mp3",
+            "genre": "Hits Rock",
+            "slogan": "The best mix of music"
+        },
+        {
+            "name": "Gold FM",
+            "url": "https://playerservices.streamtheworld.com/api/livestream-redirect/GOLD905.mp3",
+            "genre": "Pop",
+            "slogan": "Sounds good. Feels good."
+        },
+        {
+            "name": "Ria FM",
+            "url": "https://playerservices.streamtheworld.com/api/livestream-redirect/RIA897FM.mp3",
+            "genre": "Adult-Contemporary",
+            "slogan": "Hiburan Tahap Optima"
+        },
+        {
+            "name": "AXR Singapore",
+            "url": "https://playerservices.streamtheworld.com/api/livestream-redirect/AXR.mp3",
+            "genre": "Adult-Contemporary",
+            "slogan": ""
+        },
+        {
+            "name": "Oli FM",
+            "url": "https://playerservices.streamtheworld.com/api/livestream-redirect/OLI968FM.mp3",
+            "genre": "World Indian",
+            "slogan": ""
+        }
+    ]
+}

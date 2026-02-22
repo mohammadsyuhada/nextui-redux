@@ -2,6 +2,7 @@
 .cache
 *.o
 *.so
+!workspace/all/musicplayer/include/fdk_aac/lib/*.so*
 *.elf
 *.dtb
 *.zip

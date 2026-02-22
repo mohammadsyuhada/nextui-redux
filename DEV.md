@@ -97,6 +97,9 @@ docker run --rm -v $(pwd)/workspace:/root/workspace ghcr.io/loveretro/tg5040-too
 
 # input
 docker run --rm -v $(pwd)/workspace:/root/workspace ghcr.io/loveretro/tg5040-toolchain:latest /bin/bash -c 'source ~/.bashrc && cd /root/workspace/all/input && make PLATFORM=tg5040' && adb push workspace/all/input/build/tg5040/input.elf /mnt/SDCARD/Tools/tg5040/Input.pak/
+
+# music player
+docker run --rm -v $(pwd)/workspace:/root/workspace ghcr.io/loveretro/tg5040-toolchain:latest /bin/bash -c 'source ~/.bashrc && cd /root/workspace/all/musicplayer && make PLATFORM=tg5040' && adb push workspace/all/musicplayer/build/tg5040/musicplayer.elf "/mnt/SDCARD/Tools/tg5040/Music Player.pak/"
 ```
 
 ## Component Locations

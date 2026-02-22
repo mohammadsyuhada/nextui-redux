@@ -377,6 +377,93 @@ ListItemBadgedPos UI_renderListItemPillBadged(
 }
 
 // ============================================
+// Settings Page Component
+// ============================================
+
+void UI_renderSettingsPage(SDL_Surface* screen, ListLayout* layout,
+						   UISettingsItem* items, int count,
+						   int selected, int* scroll,
+						   const char* status_msg) {
+	if (count == 0)
+		return;
+
+	int hw = screen->w;
+
+	// Compact rows: 9 rows total (8 items + 1 description)
+	int total_rows = 9;
+	layout->item_h = layout->list_h / total_rows;
+	layout->items_per_page = total_rows - 1;
+
+	UI_adjustListScroll(selected, scroll, layout->items_per_page);
+
+	int start = *scroll;
+	int end = start + layout->items_per_page;
+	if (end > count)
+		end = count;
+
+	for (int vi = start; vi < end; vi++) {
+		UISettingsItem* item = &items[vi];
+		int sel = (vi == selected);
+		int item_y = layout->list_y + (vi - start) * layout->item_h;
+
+		// Custom draw override
+		if (item->custom_draw) {
+			item->custom_draw(screen, item->custom_draw_ctx, SCALE1(PADDING), item_y,
+							  hw - SCALE1(PADDING * 2), layout->item_h, sel);
+			continue;
+		}
+
+		// Format display value (add arrows for cycleable items when selected)
+		char display_val[256];
+		const char* display_ptr = NULL;
+		if (item->value) {
+			if (sel && item->cycleable)
+				snprintf(display_val, sizeof(display_val), "< %s >", item->value);
+			else
+				snprintf(display_val, sizeof(display_val), "%s", item->value);
+			display_ptr = display_val;
+		}
+
+		UI_renderSettingsRow(screen, layout, item->label, display_ptr,
+							 item_y, sel, item->swatch);
+	}
+
+	// Scroll indicators
+	UI_renderScrollIndicators(screen, *scroll, layout->items_per_page, count);
+
+	// Status message centered below items (e.g. "Scanning for networks...")
+	if (status_msg && status_msg[0] && count < layout->items_per_page) {
+		int msg_row_y = layout->list_y + count * layout->item_h;
+		int empty_h = (layout->items_per_page - count) * layout->item_h;
+		int msg_y = msg_row_y + (empty_h - TTF_FontHeight(font.small)) / 2;
+		SDL_Surface* msg_surf = TTF_RenderUTF8_Blended(font.small, status_msg, COLOR_GRAY);
+		if (msg_surf) {
+			int msg_x = (hw - msg_surf->w) / 2;
+			SDL_BlitSurface(msg_surf, NULL, screen, &(SDL_Rect){msg_x, msg_y, 0, 0});
+			SDL_FreeSurface(msg_surf);
+		}
+	}
+
+	// Description text in the last row (row 9)
+	if (selected >= 0 && selected < count &&
+		items[selected].desc && items[selected].desc[0]) {
+		int desc_row_y = layout->list_y + layout->items_per_page * layout->item_h;
+		int desc_y = desc_row_y + (layout->item_h - TTF_FontHeight(font.tiny)) / 2;
+		int desc_max_w = hw - SCALE1(PADDING * 2);
+
+		char truncated_desc[256];
+		GFX_truncateText(font.tiny, items[selected].desc, truncated_desc, desc_max_w, 0);
+
+		SDL_Surface* desc_surf = TTF_RenderUTF8_Blended(font.tiny, truncated_desc, COLOR_GRAY);
+		if (desc_surf) {
+			int desc_x = (hw - desc_surf->w) / 2;
+			SDL_BlitSurface(desc_surf, NULL, screen, &(SDL_Rect){desc_x, desc_y, 0, 0});
+			SDL_FreeSurface(desc_surf);
+		}
+	}
+}
+
+// ============================================
 // Settings Row Rendering
 // ============================================
 

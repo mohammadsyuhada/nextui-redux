@@ -69,15 +69,7 @@ ListDialogResult ListDialog_handleInput(void) {
 		return result;
 	}
 
-	if (PAD_justPressed(BTN_UP) || PAD_justRepeated(BTN_UP)) {
-		dialog_selected--;
-		if (dialog_selected < 0)
-			dialog_selected = dialog_count - 1;
-	} else if (PAD_justPressed(BTN_DOWN) || PAD_justRepeated(BTN_DOWN)) {
-		dialog_selected++;
-		if (dialog_selected >= dialog_count)
-			dialog_selected = 0;
-	}
+	PAD_navigateMenu(&dialog_selected, dialog_count);
 
 	return result;
 }

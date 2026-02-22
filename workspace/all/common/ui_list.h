@@ -95,6 +95,27 @@ ListItemBadgedPos UI_renderListItemPillBadged(
 	const char* text, const char* subtitle, char* truncated,
 	int y, bool selected, int badge_width, int extra_subtitle_width);
 
+// ---- Settings Page Component ----
+
+typedef struct {
+	const char* label; // Left-side text
+	const char* value; // Right-side text (NULL for none)
+	int swatch;		   // Color swatch (-1 for none)
+	int cycleable;	   // Show "< >" arrows when selected
+	const char* desc;  // Description shown when item is selected
+	void (*custom_draw)(SDL_Surface* screen, void* ctx,
+						int x, int y, int w, int h, int selected);
+	void* custom_draw_ctx;
+} UISettingsItem;
+
+// Render a compact settings page (9 rows: 8 items + 1 description)
+// Handles layout calculation, scrolling, item rendering, scroll indicators,
+// status message, and description text.
+void UI_renderSettingsPage(SDL_Surface* screen, ListLayout* layout,
+						   UISettingsItem* items, int count,
+						   int selected, int* scroll,
+						   const char* status_msg);
+
 // ---- Settings Row Rendering ----
 
 // Render a settings-style row: label (left) + value (right)

@@ -177,6 +177,8 @@ enum {
 };
 
 typedef struct GFX_Fonts {
+	TTF_Font* xlarge; // extra large heading
+	TTF_Font* title;  // title / heading
 	TTF_Font* large;  // menu
 	TTF_Font* medium; // single char button label
 	TTF_Font* small;  // button hint
@@ -483,6 +485,21 @@ int PAD_justPressed(int btn);
 int PAD_isPressed(int btn);
 int PAD_justReleased(int btn);
 int PAD_justRepeated(int btn);
+
+// Wrap-around menu navigation on BTN_UP/BTN_DOWN. Returns 1 if selection changed.
+static inline int PAD_navigateMenu(int* selected, int count) {
+	if (count <= 0)
+		return 0;
+	if (PAD_justRepeated(BTN_UP)) {
+		*selected = (*selected > 0) ? *selected - 1 : count - 1;
+		return 1;
+	}
+	if (PAD_justRepeated(BTN_DOWN)) {
+		*selected = (*selected < count - 1) ? *selected + 1 : 0;
+		return 1;
+	}
+	return 0;
+}
 
 int PAD_tappedMenu(uint32_t now);	// special case, returns 1 on release of BTN_MENU within 250ms if BTN_PLUS/BTN_MINUS haven't been pressed
 int PAD_tappedSelect(uint32_t now); // special case, returns 1 on release of BTN_SELECT within 250ms if BTN_PLUS/BTN_MINUS haven't been pressed

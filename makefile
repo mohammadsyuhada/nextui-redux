@@ -12,7 +12,7 @@ endif
 
 ifeq (,$(PLATFORMS))
 #PLATFORMS = miyoomini trimuismart rg35xx rg35xxplus my355 tg5040 zero28 rgb30 m17 gkdpixel my282 magicmini
-PLATFORMS = tg5050 tg5040
+PLATFORMS = tg5040 tg5050
 endif
 
 ###########################################################
@@ -27,9 +27,9 @@ else
   RELEASE_BETA := -$(BUILD_BRANCH)
 endif
 ifeq ($(PLATFORM), desktop)
-	TOOLCHAIN_FILE := makefile.native
+	TOOLCHAIN_FILE := Makefile.native
 else
-	TOOLCHAIN_FILE := makefile.toolchain
+	TOOLCHAIN_FILE := Makefile.toolchain
 endif
 RELEASE_NAME ?= NextUI-$(RELEASE_TIME)$(RELEASE_BETA)
 
@@ -107,6 +107,7 @@ endif
 	cp ./workspace/all/input/build/$(PLATFORM)/input.elf ./build/EXTRAS/Tools/$(PLATFORM)/Input.pak/
 	cp ./workspace/all/settings/build/$(PLATFORM)/settings.elf ./build/EXTRAS/Tools/$(PLATFORM)/Settings.pak/
 	cp ./workspace/all/updater/build/$(PLATFORM)/updater.elf ./build/EXTRAS/Tools/$(PLATFORM)/Updater.pak/
+	cp ./workspace/all/musicplayer/build/$(PLATFORM)/musicplayer.elf ./build/EXTRAS/Tools/$(PLATFORM)/Music\ Player.pak/
 ifneq (,$(filter $(PLATFORM),tg5040 tg5050))
 	cp ./workspace/all/bootlogo/build/$(PLATFORM)/bootlogo.elf ./build/EXTRAS/Tools/$(PLATFORM)/Bootlogo.pak/
 ifeq ($(PLATFORM), tg5040)
@@ -115,6 +116,9 @@ ifeq ($(PLATFORM), tg5040)
 endif
 	# Audio resampling
 	cp ./workspace/all/minarch/build/$(PLATFORM)/libsamplerate.* ./build/SYSTEM/$(PLATFORM)/lib/
+
+	# fdk-aac for music player
+	cp ./workspace/all/musicplayer/include/fdk_aac/lib/libfdk-aac.so* ./build/SYSTEM/$(PLATFORM)/lib/
 
 	# ROM decompression and SRM support
 	cp ./workspace/all/minarch/build/$(PLATFORM)/libzip.* ./build/SYSTEM/$(PLATFORM)/lib/
@@ -191,9 +195,16 @@ compile-commands:
 		grep -v 'nextui-video-player' | \
 		grep -v 'nextui-netplay' | \
 	while read -r file; do \
+		extra_flags=""; \
+		case "$$file" in \
+			workspace/all/musicplayer/*) \
+				extra_flags="\"-I$(CURDIR)/workspace/all/musicplayer\", \"-I$(CURDIR)/workspace/all/musicplayer/include\", \"-I$(CURDIR)/workspace/all/musicplayer/include/mbedtls_lib\", \"-I$(CURDIR)/workspace/all/musicplayer/include/yxml\", \"-I$(CURDIR)/workspace/all/musicplayer/include/libogg\", \"-I$(CURDIR)/workspace/all/musicplayer/include/libopus/include\", \"-I$(CURDIR)/workspace/all/musicplayer/include/opusfile/include\", \"-I$(CURDIR)/workspace/all/musicplayer/include/fdk_aac\", \"-I$(CURDIR)/workspace/all/musicplayer/audio\", \"-DMBEDTLS_CONFIG_FILE=<mbedtls_config.h>\", \"-DOPUS_BUILD\", \"-DHAVE_LRINTF\", \"-DOP_DISABLE_HTTP\", \"-DOP_DISABLE_FLOAT_API\", "; \
+				;; \
+		esac; \
 		if [ "$$first" = "1" ]; then first=0; else echo ',' >> compile_commands.json; fi; \
-		printf '  {"directory": "%s", "file": "%s/%s", "arguments": ["clang", "-std=gnu99", "-DUSE_SDL2", "-DUSE_GLES", "-DGL_GLEXT_PROTOTYPES", "-DPLATFORM=\\"tg5040\\"", "-I%s/workspace/all/common", "-I%s/workspace/all/nextui", "-I%s/workspace/all/minarch", "-I%s/workspace/all/minarch/libretro-common/include", "-I%s/workspace/tg5040/platform", "-I%s/workspace/tg5050/platform", "-I%s/workspace/desktop/platform", "-I%s/workspace/tg5040/libmsettings", "-I%s/workspace/tg5050/libmsettings", "-I%s/workspace/desktop/libmsettings", "-I/opt/homebrew/include", "-c", "%s/%s"]}' \
+		printf '  {"directory": "%s", "file": "%s/%s", "arguments": ["clang", "-std=gnu99", "-DUSE_SDL2", "-DUSE_GLES", "-DGL_GLEXT_PROTOTYPES", "-DPLATFORM=\\"tg5040\\"", %s"-I%s/workspace/all/common", "-I%s/workspace/all/nextui", "-I%s/workspace/all/minarch", "-I%s/workspace/all/minarch/libretro-common/include", "-I%s/workspace/tg5040/platform", "-I%s/workspace/tg5050/platform", "-I%s/workspace/desktop/platform", "-I%s/workspace/tg5040/libmsettings", "-I%s/workspace/tg5050/libmsettings", "-I%s/workspace/desktop/libmsettings", "-I/opt/homebrew/include", "-c", "%s/%s"]}' \
 			"$(CURDIR)" "$(CURDIR)" "$$file" \
+			"$$extra_flags" \
 			"$(CURDIR)" "$(CURDIR)" "$(CURDIR)" "$(CURDIR)" "$(CURDIR)" "$(CURDIR)" "$(CURDIR)" "$(CURDIR)" "$(CURDIR)" "$(CURDIR)" \
 			"$(CURDIR)" "$$file" >> compile_commands.json; \
 	done

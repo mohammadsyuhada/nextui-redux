@@ -1,0 +1,12 @@
+{
+    "country": "United States of America",
+    "code": "USA",
+    "stations": [
+        {
+            "name": "WNYC - New York Public Radio",
+            "url": "https://am820.wnyc.org/wnycfm-mobile.aac",
+            "genre": "Public Radio",
+            "slogan": "NPR Public Radio from New York to the World"
+        }
+    ]
+}

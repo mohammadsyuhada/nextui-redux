@@ -36,4 +36,15 @@ void UI_renderLoadingOverlay(SDL_Surface* dst, const char* title, const char* su
 void UI_handleQuitRequest(SDL_Surface* screen, bool* quit, bool* dirty,
 						  const char* title, const char* subtitle);
 
+// Button-action pair for controls help dialog
+typedef struct {
+	const char* button;
+	const char* action;
+} ControlHelp;
+
+// Render a controls help dialog overlay showing button mappings.
+// controls must be NULL-terminated (last entry has button == NULL).
+void UI_renderControlsHelp(SDL_Surface* screen, const char* title,
+						   const ControlHelp* controls);
+
 #endif // UI_COMPONENTS_H

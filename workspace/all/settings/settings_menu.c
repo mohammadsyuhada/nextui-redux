@@ -349,110 +349,63 @@ static void render_list_mode(SDL_Surface* screen, SettingsPage* page, ListLayout
 // Rendering: Settings Page Mode (2-layer pills)
 // ============================================
 
+static void settings_custom_draw_wrapper(SDL_Surface* screen, void* ctx,
+										 int x, int y, int w, int h, int selected) {
+	SettingItem* item = (SettingItem*)ctx;
+	item->custom_draw(screen, item, x, y, w, h, selected);
+}
+
 static void render_settings_mode(SDL_Surface* screen, SettingsPage* page, ListLayout* layout) {
 	int vis_count = settings_page_visible_count(page);
 	if (vis_count == 0)
 		return;
 
-	int hw = screen->w;
+	// Build UISettingsItem array from visible SettingItems
+	UISettingsItem ui_items[vis_count];
+	for (int i = 0; i < vis_count; i++) {
+		SettingItem* item = settings_page_visible_item(page, i);
+		ui_items[i] = (UISettingsItem){
+			.label = item->name,
+			.value = NULL,
+			.swatch = -1,
+			.cycleable = 0,
+			.desc = item->desc,
+			.custom_draw = NULL,
+			.custom_draw_ctx = NULL,
+		};
 
-	UI_adjustListScroll(page->selected, &page->scroll, layout->items_per_page);
-
-	int start = page->scroll;
-	int end = start + layout->items_per_page;
-	if (end > vis_count)
-		end = vis_count;
-
-	for (int vi = start; vi < end; vi++) {
-		SettingItem* item = settings_page_visible_item(page, vi);
-		if (!item)
-			continue;
-
-		int selected = (vi == page->selected);
-		int item_y = layout->list_y + (vi - start) * layout->item_h;
-
-		// Custom draw override
 		if (item->custom_draw) {
-			item->custom_draw(screen, item, SCALE1(PADDING), item_y,
-							  hw - SCALE1(PADDING * 2), layout->item_h, selected);
-			continue;
-		}
+			ui_items[i].custom_draw = settings_custom_draw_wrapper;
+			ui_items[i].custom_draw_ctx = item;
+		} else {
+			// Build value string
+			if ((item->type == ITEM_CYCLE || item->type == ITEM_COLOR) &&
+				item->labels && item->current_idx >= 0 &&
+				item->current_idx < item->label_count) {
+				ui_items[i].value = item->labels[item->current_idx];
+				ui_items[i].cycleable = 1;
+			} else if (item->type == ITEM_STATIC) {
+				if (item->get_display)
+					ui_items[i].value = item->get_display();
+				else if (item->display_text[0])
+					ui_items[i].value = item->display_text;
+			} else if (item->type == ITEM_TEXT_INPUT) {
+				if (item->get_text)
+					ui_items[i].value = item->get_text();
+				else if (item->text_value[0])
+					ui_items[i].value = item->text_value;
+			}
 
-		// Build value string
-		const char* label = item->name;
-		const char* value_str = NULL;
-
-		if ((item->type == ITEM_CYCLE || item->type == ITEM_COLOR) &&
-			item->labels && item->current_idx >= 0 &&
-			item->current_idx < item->label_count) {
-			value_str = item->labels[item->current_idx];
-		} else if (item->type == ITEM_STATIC) {
-			if (item->get_display)
-				value_str = item->get_display();
-			else if (item->display_text[0])
-				value_str = item->display_text;
-		} else if (item->type == ITEM_TEXT_INPUT) {
-			if (item->get_text)
-				value_str = item->get_text();
-			else if (item->text_value[0])
-				value_str = item->text_value;
-		}
-
-		// Color swatch for ITEM_COLOR
-		int swatch = -1;
-		if (item->type == ITEM_COLOR && item->values &&
-			item->current_idx >= 0 && item->current_idx < item->label_count) {
-			swatch = (int)(uint32_t)item->values[item->current_idx];
-		}
-
-		// Format display value (add arrows for cycleable items when selected)
-		char display_val[256];
-		const char* display_ptr = NULL;
-		if (value_str) {
-			if (selected && (item->type == ITEM_CYCLE || item->type == ITEM_COLOR))
-				snprintf(display_val, sizeof(display_val), "< %s >", value_str);
-			else
-				snprintf(display_val, sizeof(display_val), "%s", value_str);
-			display_ptr = display_val;
-		}
-
-		UI_renderSettingsRow(screen, layout, label, display_ptr,
-							 item_y, selected, swatch);
-	}
-
-	// Scroll indicators
-	UI_renderScrollIndicators(screen, page->scroll, layout->items_per_page, vis_count);
-
-	// Status message centered below items (e.g. "Scanning for networks...")
-	if (page->status_msg && page->status_msg[0] && vis_count < layout->items_per_page) {
-		int msg_row_y = layout->list_y + vis_count * layout->item_h;
-		int empty_h = (layout->items_per_page - vis_count) * layout->item_h;
-		int msg_y = msg_row_y + (empty_h - TTF_FontHeight(font.small)) / 2;
-		SDL_Surface* msg_surf = TTF_RenderUTF8_Blended(font.small, page->status_msg, COLOR_GRAY);
-		if (msg_surf) {
-			int msg_x = (hw - msg_surf->w) / 2;
-			SDL_BlitSurface(msg_surf, NULL, screen, &(SDL_Rect){msg_x, msg_y, 0, 0});
-			SDL_FreeSurface(msg_surf);
+			// Color swatch
+			if (item->type == ITEM_COLOR && item->values &&
+				item->current_idx >= 0 && item->current_idx < item->label_count) {
+				ui_items[i].swatch = (int)(uint32_t)item->values[item->current_idx];
+			}
 		}
 	}
 
-	// Description text in the last row (row 9)
-	SettingItem* sel = settings_page_visible_item(page, page->selected);
-	if (sel && sel->desc && sel->desc[0]) {
-		int desc_row_y = layout->list_y + layout->items_per_page * layout->item_h;
-		int desc_y = desc_row_y + (layout->item_h - TTF_FontHeight(font.tiny)) / 2;
-		int desc_max_w = hw - SCALE1(PADDING * 2);
-
-		char truncated_desc[256];
-		GFX_truncateText(font.tiny, sel->desc, truncated_desc, desc_max_w, 0);
-
-		SDL_Surface* desc_surf = TTF_RenderUTF8_Blended(font.tiny, truncated_desc, COLOR_GRAY);
-		if (desc_surf) {
-			int desc_x = (hw - desc_surf->w) / 2;
-			SDL_BlitSurface(desc_surf, NULL, screen, &(SDL_Rect){desc_x, desc_y, 0, 0});
-			SDL_FreeSurface(desc_surf);
-		}
-	}
+	UI_renderSettingsPage(screen, layout, ui_items, vis_count,
+						  page->selected, &page->scroll, page->status_msg);
 }
 
 // ============================================
@@ -517,18 +470,10 @@ void settings_menu_render(SDL_Surface* screen, IndicatorType show_setting) {
 
 	GFX_clear(screen);
 
-	// Menu bar at top
 	UI_renderMenuBar(screen, page->title);
 
 	// Calculate list layout
 	ListLayout layout = UI_calcListLayout(screen);
-
-	// For settings pages: use compact rows (9 rows: 8 items + 1 description)
-	if (!page->is_list) {
-		int total_rows = 9;
-		layout.item_h = layout.list_h / total_rows;
-		layout.items_per_page = total_rows - 1; // last row reserved for description
-	}
 
 	int has_lock = (page->dynamic_start >= 0);
 	if (has_lock)

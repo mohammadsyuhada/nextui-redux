@@ -1,0 +1,282 @@
+{
+    "country": "Malaysia",
+    "code": "MLA",
+    "stations": [
+        {
+            "name": "988 FM",
+            "url": "http://playerservices.streamtheworld.com/api/livestream-redirect/988_FM.mp3",
+            "genre": "Chinese",
+            "slogan": "Sound of colours"
+        },
+        {
+            "name": "Ai FM",
+            "url": "http://playerservices.streamtheworld.com/api/livestream-redirect/AI_FM.mp3",
+            "genre": "Various-Music",
+            "slogan": "Ai FM"
+        },
+        {
+            "name": "Asyik FM",
+            "url": "http://playerservices.streamtheworld.com/api/livestream-redirect/ASYIK_FM.mp3",
+            "genre": "Malay Pop",
+            "slogan": "Asyik FM Moi Num Moi"
+        },
+        {
+            "name": "Best FM",
+            "url": "http://stream.rcs.revma.com/h34x4kgg9hhvv",
+            "genre": "Variety",
+            "slogan": "Terbaik Untuk Harimu"
+        },
+        {
+            "name": "BFM 89.9",
+            "url": "http://playerservices.streamtheworld.com/api/livestream-redirect/BFM.mp3",
+            "genre": "Business",
+            "slogan": "The Business Station"
+        },
+        {
+            "name": "ERA FM",
+            "url": "https://n01.rcs.revma.com/crec9cmbv4uvv/1_xmrerx26wezv02/playlist.m3u8",
+            "genre": "Malay",
+            "slogan": "Muzik Hit Terkini"
+        },
+        {
+            "name": "FFM",
+            "url": "http://usa3.fastcast4u.com:5968/ffm",
+            "genre": "Various",
+            "slogan": ""
+        },
+        {
+            "name": "Gegar Musik FM",
+            "url": "http://s1.cmesolution.my:5316/;",
+            "genre": "Malay",
+            "slogan": "Gegaran Dunia Muzik Anda"
+        },
+        {
+            "name": "Gemersik FM",
+            "url": "http://gemersikfm.iradio.work:8000/;",
+            "genre": "Variety",
+            "slogan": "Bukan Sekadar Hiburan"
+        },
+        {
+            "name": "Generasi FM",
+            "url": "http://generasifm.iradio.work:8000/stream",
+            "genre": "Malay",
+            "slogan": "Alunan Irama Jiwa Anda"
+        },
+        {
+            "name": "Hamara Radio",
+            "url": "http://radio.adeeltek.com/listen/hamara/radio.mp3",
+            "genre": "Hindi",
+            "slogan": ""
+        },
+        {
+            "name": "Hitz FM",
+            "url": "https://n10.rcs.revma.com/488kt4sbv4uvv/10_xn1quxmoht3902/playlist.m3u8",
+            "genre": "Hits Rock",
+            "slogan": "More the Hitz, One the Time"
+        },
+        {
+            "name": "Johor FM",
+            "url": "http://playerservices.streamtheworld.com/api/livestream-redirect/JOHOR_FM.mp3",
+            "genre": "Regional",
+            "slogan": "Permata Selatan"
+        },
+        {
+            "name": "KC FM Malaysia",
+            "url": "http://radio.kcfm.org:8000/;",
+            "genre": "Various",
+            "slogan": ""
+        },
+        {
+            "name": "Kedah FM",
+            "url": "http://playerservices.streamtheworld.com/api/livestream-redirect/KEDAH_FM.mp3",
+            "genre": "Regional",
+            "slogan": "Friendly Harmony"
+        },
+        {
+            "name": "Kelantan FM",
+            "url": "http://playerservices.streamtheworld.com/api/livestream-redirect/KELANTAN_FM.mp3",
+            "genre": "Regional",
+            "slogan": "Penuhi Cita Rasa Anda"
+        },
+        {
+            "name": "Labuan FM",
+            "url": "http://playerservices.streamtheworld.com/api/livestream-redirect/LABUAN_FM.mp3",
+            "genre": "Regional",
+            "slogan": "Suara Pesisir Anda"
+        },
+        {
+            "name": "Langkawi FM",
+            "url": "http://playerservices.streamtheworld.com/api/livestream-redirect/LANGKAWI_FM.mp3",
+            "genre": "Regional",
+            "slogan": "Yes. Its for you"
+        },
+        {
+            "name": "Manis FM",
+            "url": "http://stream.rcs.revma.com/nzgauqq1v7zuv",
+            "genre": "Malay",
+            "slogan": "Gaya Pantai Timur"
+        },
+        {
+            "name": "Melaka FM",
+            "url": "http://playerservices.streamtheworld.com/api/livestream-redirect/MELAKA_FM.mp3",
+            "genre": "Regional",
+            "slogan": "Mempersonakan"
+        },
+        {
+            "name": "Melody FM",
+            "url": "http://stream.rcs.revma.com/2u1n6dtbv4uvv/9_11l86ncot7z1w02/playlist.m3u8",
+            "genre": "Chinese",
+            "slogan": "Listening to the new experience"
+        },
+        {
+            "name": "Minnal FM",
+            "url": "http://playerservices.streamtheworld.com/api/livestream-redirect/MINNAL_FM.mp3",
+            "genre": "Tamil",
+            "slogan": "Minnal FM"
+        },
+        {
+            "name": "Mix FM",
+            "url": "https://n11.rcs.revma.com/v5pq3htbv4uvv/11_ghufkopcs83102/playlist.m3u8",
+            "genre": "English",
+            "slogan": "Todays Best Music"
+        },
+        {
+            "name": "Nasional FM",
+            "url": "http://playerservices.streamtheworld.com/api/livestream-redirect/NASIONAL_FM.mp3",
+            "genre": "News/Malay",
+            "slogan": "Sentiasa Di Hati Always in the Heart"
+        },
+        {
+            "name": "Nasheed FM",
+            "url": "http://stereo.nasyidfm.com:8000/;",
+            "genre": "Islamic",
+            "slogan": "Wadah Hiburan Terkini"
+        },
+        {
+            "name": "Pahang FM",
+            "url": "http://playerservices.streamtheworld.com/api/livestream-redirect/PAHANG_FM.mp3",
+            "genre": "Regional",
+            "slogan": "Satu Pilihan One Option"
+        },
+        {
+            "name": "Perak FM",
+            "url": "http://playerservices.streamtheworld.com/api/livestream-redirect/PERAK_FM.mp3",
+            "genre": "Regional",
+            "slogan": "Untuk Kome Aje"
+        },
+        {
+            "name": "Perindu FM",
+            "url": "http://cp.usa3.fastcast4u.com:5744/;",
+            "genre": "Malay",
+            "slogan": "Rentak Inspirasi Muzik Retro Dan Terkini"
+        },
+        {
+            "name": "Radio Annur",
+            "url": "http://listen.radioannurmainj.my/proxy/radioannur/stream",
+            "genre": "Islamic",
+            "slogan": ""
+        },
+        {
+            "name": "Radio Klasik",
+            "url": "http://playerservices.streamtheworld.com/api/livestream-redirect/RADIO_KLASIK.mp3",
+            "genre": "Classical",
+            "slogan": "Menggamit Kenangan"
+        },
+        {
+            "name": "Radio Klate Kito",
+            "url": "http://s6.voscast.com:9748/;",
+            "genre": "Regional",
+            "slogan": ""
+        },
+        {
+            "name": "Radio Rosak",
+            "url": "http://radiorosak.radioca.st/stream",
+            "genre": "Various",
+            "slogan": "Muzik Tanpa Sempadan"
+        },
+        {
+            "name": "Red FM",
+            "url": "http://playerservices.streamtheworld.com/api/livestream-redirect/RED_FM.mp3",
+            "genre": "English/Chinese",
+            "slogan": "Red FM For variety"
+        },
+        {
+            "name": "Rentap Station",
+            "url": "http://cloud.tujuh.my:8000/stream",
+            "genre": "Various",
+            "slogan": "Mantopp...kayuhh"
+        },
+        {
+            "name": "Sabah FM",
+            "url": "http://playerservices.streamtheworld.com/api/livestream-redirect/SABAH_FM.mp3",
+            "genre": "Regional",
+            "slogan": "Bagus Bah"
+        },
+        {
+            "name": "Sarawak FM",
+            "url": "http://playerservices.streamtheworld.com/api/livestream-redirect/SARAWAK_FM.mp3",
+            "genre": "Regional",
+            "slogan": "One heart, one soul"
+        },
+        {
+            "name": "Sinar FM",
+            "url": "http://stream.rcs.revma.com/azatk0tbv4uvv/8_1ksmof3jo7vso02/playlist.m3u8",
+            "genre": "Adult-Contemporary",
+            "slogan": "Menyinari Hidupmu"
+        },
+        {
+            "name": "Sky Chatz FM",
+            "url": "http://java.skychatz.org:8080/;",
+            "genre": "Various",
+            "slogan": "Muzik Imaginasi Tanpa Henti"
+        },
+        {
+            "name": "Star 92.7 FM",
+            "url": "http://ssl.geckohost.nz/proxy/interac1?mp=/stream",
+            "genre": "Hip Hop, Soul and R&B",
+            "slogan": ""
+        },
+        {
+            "name": "Suria FM",
+            "url": "http://playerservices.streamtheworld.com/api/livestream-redirect/SURIA_FM.mp3",
+            "genre": "Malay Pop",
+            "slogan": "Menceriakan Duniamu"
+        },
+        {
+            "name": "Terengganu FM",
+            "url": "http://playerservices.streamtheworld.com/api/livestream-redirect/TERENGGANU_FM.mp3",
+            "genre": "Regional",
+            "slogan": "Mesra Ceria"
+        },
+        {
+            "name": "THR Gegar",
+            "url": "https://n04.rcs.revma.com/cn0zcqsbv4uvv/4_h98cufl1us5p02/playlist.m3u8",
+            "genre": "Malay",
+            "slogan": ""
+        },
+        {
+            "name": "Traxx FM",
+            "url": "http://playerservices.streamtheworld.com/api/livestream-redirect/TRAXX_FM.mp3",
+            "genre": "English",
+            "slogan": "Travel N Music"
+        },
+        {
+            "name": "WAI FM Bidayuh",
+            "url": "http://playerservices.streamtheworld.com/api/livestream-redirect/WAI_FM_BK.mp3",
+            "genre": "Bidayuh",
+            "slogan": "Movement of Bismah"
+        },
+        {
+            "name": "WAI FM Iban",
+            "url": "http://playerservices.streamtheworld.com/api/livestream-redirect/WAI_FM_IBAN.mp3",
+            "genre": "Iban",
+            "slogan": ""
+        },
+        {
+            "name": "Zayan FM",
+            "url": "https://n01.rcs.revma.com/7ww2a4tbv4uvv/1_1vwty5hte9g5e02/playlist.m3u8",
+            "genre": "Islamic",
+            "slogan": "Destinasi Nasyid Anda"
+        }
+    ]
+}
