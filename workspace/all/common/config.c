@@ -50,6 +50,7 @@ void CFG_defaults(NextUISettings* cfg) {
 		.showTools = CFG_DEFAULT_SHOWTOOLS,
 		.showCollections = CFG_DEFAULT_SHOWCOLLECTIONS,
 		.showGameArt = CFG_DEFAULT_SHOWGAMEART,
+		.showEmulators = CFG_DEFAULT_SHOWEMULATORS,
 		.gameSwitcherScaling = CFG_DEFAULT_GAMESWITCHERSCALING,
 		.defaultView = CFG_DEFAULT_VIEW,
 		.showQuickSwitcherUi = CFG_DEFAULT_SHOWQUICKWITCHERUI,
@@ -183,6 +184,10 @@ void CFG_init(FontLoad_callback_t cb, ColorSet_callback_t ccb) {
 			}
 			if (sscanf(line, "collections=%i", &temp_value) == 1) {
 				CFG_setShowCollections((bool)temp_value);
+				continue;
+			}
+			if (sscanf(line, "emulators=%i", &temp_value) == 1) {
+				CFG_setShowEmulators((bool)temp_value);
 				continue;
 			}
 			if (sscanf(line, "gameart=%i", &temp_value) == 1) {
@@ -568,6 +573,15 @@ void CFG_setShowGameArt(bool show) {
 	CFG_sync();
 }
 
+bool CFG_getShowEmulators(void) {
+	return settings.showEmulators;
+}
+
+void CFG_setShowEmulators(bool show) {
+	settings.showEmulators = show;
+	CFG_sync();
+}
+
 bool CFG_getRomsUseFolderBackground(void) {
 	return settings.romsUseFolderBackground;
 }
@@ -924,6 +938,8 @@ void CFG_get(const char* key, char* value) {
 		sprintf(value, "%i", CFG_getShowTools());
 	} else if (strcmp(key, "collections") == 0) {
 		sprintf(value, "%i", CFG_getShowCollections());
+	} else if (strcmp(key, "emulators") == 0) {
+		sprintf(value, "%i", CFG_getShowEmulators());
 	} else if (strcmp(key, "gameart") == 0) {
 		sprintf(value, "%i", CFG_getShowGameArt());
 	} else if (strcmp(key, "showfoldernamesatroot") == 0) {
@@ -1018,6 +1034,7 @@ void CFG_sync(void) {
 	fprintf(file, "recents=%i\n", settings.showRecents);
 	fprintf(file, "tools=%i\n", settings.showTools);
 	fprintf(file, "collections=%i\n", settings.showCollections);
+	fprintf(file, "emulators=%i\n", settings.showEmulators);
 	fprintf(file, "gameart=%i\n", settings.showGameArt);
 	fprintf(file, "showfoldernamesatroot=%i\n", settings.showFolderNamesAtRoot);
 	fprintf(file, "screentimeout=%i\n", settings.screenTimeoutSecs);

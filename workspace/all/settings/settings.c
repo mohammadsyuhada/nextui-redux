@@ -631,6 +631,28 @@ static void reset_show_game_art(void) {
 	CFG_setShowGameArt(CFG_DEFAULT_SHOWGAMEART);
 }
 
+/* Show collection */
+static int get_show_collections(void) {
+	return CFG_getShowCollections() ? 1 : 0;
+}
+static void set_show_collections(int v) {
+	CFG_setShowCollections(v != 0);
+}
+static void reset_show_collections(void) {
+	CFG_setShowCollections(CFG_DEFAULT_SHOWCOLLECTIONS);
+}
+
+/* Show emulator folders*/
+static int get_show_emulators(void) {
+	return CFG_getShowEmulators() ? 1 : 0;
+}
+static void set_show_emulators(int v) {
+	CFG_setShowEmulators(v != 0);
+}
+static void reset_show_emulators(void) {
+	CFG_setShowEmulators(CFG_DEFAULT_SHOWEMULATORS);
+}
+
 /* Use folder background for ROMs */
 static int get_roms_use_folder_bg(void) {
 	return CFG_getRomsUseFolderBackground() ? 1 : 0;
@@ -1380,22 +1402,22 @@ static void build_menu_tree(const DeviceInfo* dev) {
 		"Font", "The font to render all UI text.",
 		font_labels, 2, NULL, get_font, set_font, reset_font);
 	appearance_items[idx++] = (SettingItem)ITEM_COLOR_INIT(
-		"Main Color", "The color used to render main UI elements.",
+		"Main color", "The color used to render main UI elements.",
 		color_labels, COLOR_COUNT, (int*)color_values, get_color1, set_color1, reset_color1);
 	appearance_items[idx++] = (SettingItem)ITEM_COLOR_INIT(
-		"Primary Accent Color", "The color used to highlight important things in the user interface.",
+		"Primary accent color", "The color used to highlight important things in the UI.",
 		color_labels, COLOR_COUNT, (int*)color_values, get_color2, set_color2, reset_color2);
 	appearance_items[idx++] = (SettingItem)ITEM_COLOR_INIT(
-		"Secondary Accent Color", "A secondary highlight color.",
+		"Secondary accent color", "A secondary highlight color.",
 		color_labels, COLOR_COUNT, (int*)color_values, get_color3, set_color3, reset_color3);
 	appearance_items[idx++] = (SettingItem)ITEM_COLOR_INIT(
-		"Hint info Color", "Color for button hints and info",
+		"Hint info color", "Color for button hints and info",
 		color_labels, COLOR_COUNT, (int*)color_values, get_color6, set_color6, reset_color6);
 	appearance_items[idx++] = (SettingItem)ITEM_COLOR_INIT(
-		"List Text", "List text color",
+		"List text", "List text color",
 		color_labels, COLOR_COUNT, (int*)color_values, get_color4, set_color4, reset_color4);
 	appearance_items[idx++] = (SettingItem)ITEM_COLOR_INIT(
-		"List Text Selected", "List selected text color",
+		"List text selected", "List selected text color",
 		color_labels, COLOR_COUNT, (int*)color_values, get_color5, set_color5, reset_color5);
 	appearance_items[idx++] = (SettingItem)ITEM_CYCLE_INIT(
 		"Show battery percentage", "Show battery level as percent in the status pill",
@@ -1421,6 +1443,12 @@ static void build_menu_tree(const DeviceInfo* dev) {
 	appearance_items[idx++] = (SettingItem)ITEM_CYCLE_INIT(
 		"Show Tools", "Show \"Tools\" menu entry in game list.",
 		on_off_labels, 2, on_off_values, get_show_tools, set_show_tools, reset_show_tools);
+	appearance_items[idx++] = (SettingItem)ITEM_CYCLE_INIT(
+		"Show Collections", "Show \"Collections\" menu entry in game list.",
+		on_off_labels, 2, on_off_values, get_show_collections, set_show_collections, reset_show_collections);
+	appearance_items[idx++] = (SettingItem)ITEM_CYCLE_INIT(
+		"Show Emulators", "Show \"Emulators\" folders entry in game list.",
+		on_off_labels, 2, on_off_values, get_show_emulators, set_show_emulators, reset_show_emulators);
 	appearance_items[idx++] = (SettingItem)ITEM_CYCLE_INIT(
 		"Show game art", "Show game artwork in the main menu",
 		on_off_labels, 2, on_off_values, get_show_game_art, set_show_game_art, reset_show_game_art);
@@ -1632,7 +1660,7 @@ static void build_menu_tree(const DeviceInfo* dev) {
 	// ============================
 	idx = 0;
 	ra_items[idx++] = (SettingItem)ITEM_CYCLE_INIT(
-		"Enable Achievements", "Enable RetroAchievements integration",
+		"Enable achievements", "Enable RetroAchievements integration",
 		on_off_labels, 2, on_off_values, get_ra_enable, set_ra_enable, reset_ra_enable);
 	ra_items[idx++] = (SettingItem)ITEM_TEXT_INPUT_INIT(
 		"Username", "RetroAchievements username",
@@ -1647,16 +1675,16 @@ static void build_menu_tree(const DeviceInfo* dev) {
 		"Status", "Authentication status",
 		get_ra_status);
 	ra_items[idx++] = (SettingItem)ITEM_CYCLE_INIT(
-		"Show Notifications", "Show achievement unlock notifications",
+		"Show notifications", "Show achievement unlock notifications",
 		on_off_labels, 2, on_off_values, get_ra_show_notifications, set_ra_show_notifications, reset_ra_show_notifications);
 	ra_items[idx++] = (SettingItem)ITEM_CYCLE_INIT(
-		"Notification Duration", "How long achievement notifications stay on screen",
+		"Notification duration", "How long achievement notifications stay on screen",
 		notify_duration_labels, NOTIFY_DURATION_COUNT, notify_duration_values, get_ra_notify_duration, set_ra_notify_duration, reset_ra_notify_duration);
 	ra_items[idx++] = (SettingItem)ITEM_CYCLE_INIT(
-		"Progress Duration", "Duration for progress updates (top-left). Off to disable.",
+		"Progress duration", "Duration for progress updates (top-left). Off to disable.",
 		progress_duration_labels, PROGRESS_DURATION_COUNT, progress_duration_values, get_ra_progress_duration, set_ra_progress_duration, reset_ra_progress_duration);
 	ra_items[idx++] = (SettingItem)ITEM_CYCLE_INIT(
-		"Achievement Sort Order", "How achievements are sorted in the in-game menu",
+		"Achievement sort order", "How achievements are sorted in the in-game menu",
 		ra_sort_labels, RA_SORT_LABEL_COUNT, ra_sort_values, get_ra_sort_order, set_ra_sort_order, reset_ra_sort_order);
 	ra_items[idx++] = (SettingItem)ITEM_BUTTON_INIT(
 		"Reset to defaults", "Resets all options in this menu to their default values.",

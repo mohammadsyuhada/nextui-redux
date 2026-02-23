@@ -490,8 +490,10 @@ Array* getRoot(int simple_mode) {
 		}
 	}
 
-	// Move entries to root
-	Array_yoink(root, entries);
+	if (CFG_getShowEmulators()) {
+		// Move entries to root
+		Array_yoink(root, entries);
+	}
 
 	// Add tools if applicable
 	if (hasTools() && CFG_getShowTools() && !simple_mode) {

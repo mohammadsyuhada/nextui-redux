@@ -50,6 +50,7 @@ New Features:
 - Redesigned UI with consistent styling across the system.
 - Game art fallback for titles without save states in the game switcher
 - Main menu shortcut for quick access to frequently used Tools and Games
+- Option to disable the Emulator folders (ideal for users who prefer listing only selected games (via shortcut) on the main menu)
 - Direct selection of Wi-Fi networks and Bluetooth devices from the quick menu
     - IP address is displayed in the bottom button hint bar when connected
 - Added developer options in `Settings`
@@ -83,7 +84,7 @@ Architectural decisions here prioritize clarity and maintainability over strict 
 
 ## Credits
 
-- All contributors in [LoveRetro/NextUI](https://github.com/LoveRetro/NextUI)
+- [ro8inmorgan](https://github.com/ro8inmorgan), [frysee](https://github.com/frysee) and all contributors for developing NextUI
 - [KrutzOtrem](https://github.com/KrutzOtrem/Trimui-Brick-Overlays) for the overlays
 - [timbueno](https://github.com/timbueno/ArtBookNextUI.theme) for the Artbook theme
 - [anthonycaccese](https://github.com/anthonycaccese/art-book-next-es-de) for the Artbook artwork

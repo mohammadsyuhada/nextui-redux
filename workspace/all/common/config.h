@@ -100,6 +100,7 @@ typedef struct
 	bool showTools;
 	bool showCollections;
 	bool showGameArt;
+	bool showEmulators;
 	bool showFolderNamesAtRoot;
 	bool romsUseFolderBackground;
 	bool showQuickSwitcherUi;
@@ -172,6 +173,7 @@ typedef struct
 #define CFG_DEFAULT_SHOWRECENTS true
 #define CFG_DEFAULT_SHOWCOLLECTIONS true
 #define CFG_DEFAULT_SHOWGAMEART true
+#define CFG_DEFAULT_SHOWEMULATORS true
 #define CFG_DEFAULT_SHOWFOLDERNAMESATROOT true
 #define CFG_DEFAULT_GAMESWITCHERSCALING GFX_SCALE_FULLSCREEN
 #define CFG_DEFAULT_SCREENTIMEOUTSECS 60
@@ -270,6 +272,9 @@ void CFG_setShowTools(bool show);
 // Show/hide collections in the main menu.
 bool CFG_getShowCollections(void);
 void CFG_setShowCollections(bool show);
+// Show/hide emulators in the main menu.
+bool CFG_getShowEmulators(void);
+void CFG_setShowEmulators(bool show);
 // Show/hide game art in the main menu.
 bool CFG_getShowGameArt(void);
 void CFG_setShowGameArt(bool show);
