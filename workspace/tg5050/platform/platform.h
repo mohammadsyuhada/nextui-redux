@@ -61,6 +61,7 @@
 
 #define CODE_MENU CODE_NA
 #define CODE_MENU_ALT 13
+#define CODE_HOME 172
 #define CODE_POWER 102
 
 #define CODE_PLUS 128

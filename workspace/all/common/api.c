@@ -2690,7 +2690,10 @@ FALLBACK_IMPLEMENTATION void PLAT_pollInput(void) {
 			} else if (code == CODE_POWEROFF) {
 				btn = BTN_POWEROFF;
 				id = BTN_ID_POWEROFF;
-			} // nano-only
+			} else if (code == CODE_HOME) {
+				btn = BTN_HOME;
+				id = BTN_ID_HOME;
+			}
 		} else if (event.type == SDL_JOYBUTTONDOWN || event.type == SDL_JOYBUTTONUP) {
 			uint8_t joy = event.jbutton.button;
 			pressed = event.type == SDL_JOYBUTTONDOWN;
@@ -2761,6 +2764,9 @@ FALLBACK_IMPLEMENTATION void PLAT_pollInput(void) {
 			} else if (joy == JOY_POWER) {
 				btn = BTN_POWER;
 				id = BTN_ID_POWER;
+			} else if (joy == JOY_HOME) {
+				btn = BTN_HOME;
+				id = BTN_ID_HOME;
 			}
 		} else if (event.type == SDL_JOYHATMOTION) {
 			int hats[4] = {-1, -1, -1, -1}; // -1=no change,0=up,1=down,2=left,3=right btn_ids
