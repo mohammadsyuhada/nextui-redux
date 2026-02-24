@@ -1688,7 +1688,7 @@ static void build_menu_tree(const DeviceInfo* dev) {
 	notify_items[idx++] = (SettingItem)ITEM_BUTTON_INIT(
 		"Reset to defaults", "Resets all options in this menu to their default values.",
 		reset_notify_page);
-	init_page(&notify_page, "Notifications", notify_items, idx, 0);
+	init_page(&notify_page, "In-game notifications", notify_items, idx, 0);
 
 	// ============================
 	// RetroAchievements page
@@ -1767,17 +1767,9 @@ static void build_menu_tree(const DeviceInfo* dev) {
 	// ============================
 	idx = 0;
 	main_items[idx++] = (SettingItem)ITEM_SUBMENU_INIT(
-		"Appearance", "UI customization", &appearance_page);
-	main_items[idx++] = (SettingItem)ITEM_SUBMENU_INIT(
 		"Display", "", &display_page);
 	main_items[idx++] = (SettingItem)ITEM_SUBMENU_INIT(
-		"System", "", &system_page);
-
-	if (has_mute_toggle(dev)) {
-		main_items[idx++] = (SettingItem)ITEM_SUBMENU_INIT(
-			"FN switch", "FN switch settings", &fn_switch_page);
-	}
-
+		"Appearance", "UI customization", &appearance_page);
 	main_items[idx++] = (SettingItem)ITEM_SUBMENU_INIT(
 		"Notifications", "Save state notifications", &notify_page);
 
@@ -1788,9 +1780,6 @@ static void build_menu_tree(const DeviceInfo* dev) {
 				"LED Control", "Configure LED lighting effects", led_page_ptr);
 		}
 	}
-
-	main_items[idx++] = (SettingItem)ITEM_SUBMENU_INIT(
-		"RetroAchievements", "Achievement tracking settings", &ra_page);
 
 	if (has_wifi(dev)) {
 		wifi_page_ptr = wifi_page_create();
@@ -1806,14 +1795,25 @@ static void build_menu_tree(const DeviceInfo* dev) {
 		}
 	}
 
+	main_items[idx++] = (SettingItem)ITEM_SUBMENU_INIT(
+		"RetroAchievements", "Achievement tracking settings", &ra_page);
+
+	if (has_mute_toggle(dev)) {
+		main_items[idx++] = (SettingItem)ITEM_SUBMENU_INIT(
+			"FN switch", "FN switch settings", &fn_switch_page);
+	}
+
+	main_items[idx++] = (SettingItem)ITEM_SUBMENU_INIT(
+		"Simple Mode", "Simplified menu for children", &simple_mode_page);
+
+	main_items[idx++] = (SettingItem)ITEM_SUBMENU_INIT(
+		"System", "", &system_page);
+
 	dev_page_ptr = developer_page_create(dev->platform);
 	if (dev_page_ptr) {
 		main_items[idx++] = (SettingItem)ITEM_SUBMENU_INIT(
 			"Developer", "Developer & debugging tools", dev_page_ptr);
 	}
-
-	main_items[idx++] = (SettingItem)ITEM_SUBMENU_INIT(
-		"Simple Mode", "Simplified menu for children", &simple_mode_page);
 
 	main_items[idx++] = (SettingItem)ITEM_SUBMENU_INIT(
 		"About", "", &about_page);

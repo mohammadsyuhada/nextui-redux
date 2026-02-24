@@ -390,8 +390,7 @@ void UI_renderSettingsPage(SDL_Surface* screen, ListLayout* layout,
 
 	int hw = screen->w;
 
-	// Compact rows: 9 rows total (8 items + 1 description)
-	int total_rows = 9;
+	int total_rows = SETTINGS_ROW_COUNT;
 	layout->item_h = layout->list_h / total_rows;
 	layout->items_per_page = total_rows - 1;
 
