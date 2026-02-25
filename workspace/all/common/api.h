@@ -700,6 +700,8 @@ void PLAT_setCustomCPUSpeed(int speed);
 // note: this affects the calling thread and every thread spawned from it (after)
 void PLAT_pinToCores(int core_type); // CPU_CORE_EFFICIENCY or CPU_CORE_PERFORMANCE
 void PLAT_setRumble(int strength);
+void PLAT_setCapturePipeFd(int fd);
+void PLAT_captureRecStop(void);
 int PLAT_pickSampleRate(int requested, int max);
 
 char* PLAT_getModel(void);

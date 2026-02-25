@@ -72,6 +72,8 @@ static int ffplay_exec(FfplayConfig* config, int use_subs) {
 	char vf_strs[MAX_SUBTITLE_FILES + 1][1024];
 	char vf_str[1024];
 
+	const char* sub_fontname = (CFG_getFontId() == 1) ? "MiSans Semibold" : "Rounded Mplus 1c Bold";
+
 	if (use_subs && config->subtitle_count > 0) {
 		// Disable embedded subtitle streams — external vfilters handle subtitles instead.
 		// Without this, embedded subs render on top and hide external subtitle changes.
@@ -80,12 +82,12 @@ static int ffplay_exec(FfplayConfig* config, int use_subs) {
 		for (int i = 0; i < config->subtitle_count; i++) {
 			if (scale_filter[0]) {
 				snprintf(vf_strs[i], sizeof(vf_strs[0]),
-						 "%s,subtitles='%s':fontsdir='%s':force_style='Fontname=Rounded Mplus 1c Bold,FontSize=32'",
-						 scale_filter, config->subtitle_paths[i], RES_PATH);
+						 "%s,subtitles='%s':fontsdir='%s':force_style='Fontname=%s,FontSize=32'",
+						 scale_filter, config->subtitle_paths[i], RES_PATH, sub_fontname);
 			} else {
 				snprintf(vf_strs[i], sizeof(vf_strs[0]),
-						 "subtitles='%s':fontsdir='%s':force_style='Fontname=Rounded Mplus 1c Bold,FontSize=32'",
-						 config->subtitle_paths[i], RES_PATH);
+						 "subtitles='%s':fontsdir='%s':force_style='Fontname=%s,FontSize=32'",
+						 config->subtitle_paths[i], RES_PATH, sub_fontname);
 			}
 			argv[argc++] = "-vf";
 			argv[argc++] = vf_strs[i];
@@ -107,9 +109,9 @@ static int ffplay_exec(FfplayConfig* config, int use_subs) {
 		//              ASS/SSA which have their own fonts and positioning
 		if (config->subtitle_is_external) {
 			snprintf(vf_str, sizeof(vf_str),
-					 "%s%ssubtitles='%s':fontsdir='%s':force_style='Fontname=Rounded Mplus 1c Bold,FontSize=32'",
+					 "%s%ssubtitles='%s':fontsdir='%s':force_style='Fontname=%s,FontSize=32'",
 					 scale_filter, scale_filter[0] ? "," : "",
-					 config->subtitle_path, RES_PATH);
+					 config->subtitle_path, RES_PATH, sub_fontname);
 		} else {
 			snprintf(vf_str, sizeof(vf_str),
 					 "%s%ssubtitles='%s':fontsdir='%s'",

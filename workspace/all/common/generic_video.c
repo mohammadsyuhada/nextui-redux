@@ -21,6 +21,13 @@
 #include <stdlib.h>
 #include <pthread.h>
 #include <stdint.h>
+#include <fcntl.h>
+#include <unistd.h>
+#include <string.h>
+#include <time.h>
+#include <sys/stat.h>
+#include <sys/mman.h>
+
 
 #if defined(__has_feature)
 #if __has_feature(thread_sanitizer)
@@ -103,6 +110,39 @@ static int device_width;
 static int device_height;
 static int device_pitch;
 static uint32_t SDL_transparentBlack = 0;
+
+// Screen capture for tg5050 (GPU doesn't write to legacy framebuffer)
+// GPU readback via glReadPixels on render thread; file write offloaded to worker.
+// Data is raw bottom-to-top RGBA; ffmpeg handles vflip + format at encode time.
+#define CAPTURE_REC_TMPDIR SDCARD_PATH "/Videos/Recordings/.rec_tmp"
+#define CAPTURE_REC_FRAMES_PATH CAPTURE_REC_TMPDIR "/frames.raw"
+#define CAPTURE_REC_TS_PATH CAPTURE_REC_TMPDIR "/timestamps.txt"
+
+static int capture_rec_fd = -1;		 // fd for recording frames file
+static FILE* capture_ts_file = NULL; // timestamp file for recording
+static int capture_shm_fd = -1;
+static uint8_t* capture_shm_ptr = NULL;
+static uint8_t* capture_buf_a = NULL; // double-buffer A (render thread fills)
+static uint8_t* capture_buf_b = NULL; // double-buffer B (worker processes)
+static size_t capture_frame_size = 0;
+static int capture_counter = 0;
+static uint32_t capture_last_ms = 0;
+static bool capture_active = false;
+
+// Worker thread state (all fields protected by capture_worker_mutex)
+static pthread_t capture_worker_thread;
+static pthread_mutex_t capture_worker_mutex = PTHREAD_MUTEX_INITIALIZER;
+static pthread_cond_t capture_worker_cond = PTHREAD_COND_INITIALIZER;
+static pthread_cond_t capture_rec_closed_cond = PTHREAD_COND_INITIALIZER;
+static bool capture_worker_running = false;
+static bool capture_worker_has_frame = false;
+static bool capture_worker_quit = false;
+static uint32_t capture_worker_frame_ts = 0;
+static bool capture_rec_close_requested = false;
+
+static void capture_write(void);
+static void capture_check(void);
+static void* capture_worker_func(void* arg);
 
 #define OVERLAYS_FOLDER SDCARD_PATH "/Overlays"
 
@@ -708,6 +748,43 @@ static void clearVideo(void) {
 }
 
 void PLAT_quitVideo(void) {
+	// Stop worker thread before freeing buffers
+	if (capture_worker_running) {
+		pthread_mutex_lock(&capture_worker_mutex);
+		capture_worker_quit = true;
+		pthread_cond_signal(&capture_worker_cond);
+		pthread_mutex_unlock(&capture_worker_mutex);
+		pthread_join(capture_worker_thread, NULL);
+		capture_worker_running = false;
+		capture_worker_quit = false;
+		capture_worker_has_frame = false;
+	}
+	if (capture_buf_a) {
+		free(capture_buf_a);
+		capture_buf_a = NULL;
+	}
+	if (capture_buf_b) {
+		free(capture_buf_b);
+		capture_buf_b = NULL;
+	}
+	if (capture_shm_ptr) {
+		munmap(capture_shm_ptr, capture_frame_size);
+		capture_shm_ptr = NULL;
+	}
+	if (capture_shm_fd >= 0) {
+		close(capture_shm_fd);
+		capture_shm_fd = -1;
+	}
+	if (capture_rec_fd >= 0) {
+		close(capture_rec_fd);
+		capture_rec_fd = -1;
+	}
+	if (capture_ts_file) {
+		fclose(capture_ts_file);
+		capture_ts_file = NULL;
+	}
+	capture_active = false;
+
 	clearVideo();
 
 	// Make sure the GL context is current before tearing down textures/renderer
@@ -1294,6 +1371,7 @@ void PLAT_scrollTextTexture(
 
 // super fast without update_texture to draw screen
 void PLAT_GPU_Flip() {
+	capture_check();
 	SDL_RenderClear(vid.renderer);
 	SDL_RenderCopy(vid.renderer, vid.target_layer1, NULL, NULL);
 	SDL_RenderCopy(vid.renderer, vid.target_layer2, NULL, NULL);
@@ -1301,6 +1379,7 @@ void PLAT_GPU_Flip() {
 	SDL_RenderCopy(vid.renderer, vid.target_layer3, NULL, NULL);
 	SDL_RenderCopy(vid.renderer, vid.target_layer4, NULL, NULL);
 	SDL_RenderCopy(vid.renderer, vid.target_layer5, NULL, NULL);
+	capture_write();
 	SDL_RenderPresent(vid.renderer);
 }
 
@@ -1557,6 +1636,252 @@ void PLAT_clearShaders() {
 	vid.blit = NULL;
 }
 
+void PLAT_setCapturePipeFd(int fd) {
+	(void)fd;
+	capture_counter = 60; // trigger immediate capture_check() on next frame
+}
+
+// Synchronously close recording files. Safe to call from any thread.
+// After this returns, capture_rec_fd and capture_ts_file are closed,
+// and all pending frame data has been flushed to disk.
+void PLAT_captureRecStop(void) {
+	if (capture_rec_fd < 0)
+		return;
+	if (capture_worker_running) {
+		pthread_mutex_lock(&capture_worker_mutex);
+		capture_rec_close_requested = true;
+		pthread_cond_signal(&capture_worker_cond);
+		while (capture_rec_fd >= 0)
+			pthread_cond_wait(&capture_rec_closed_cond, &capture_worker_mutex);
+		pthread_mutex_unlock(&capture_worker_mutex);
+	} else {
+		close(capture_rec_fd);
+		capture_rec_fd = -1;
+		if (capture_ts_file) {
+			fclose(capture_ts_file);
+			capture_ts_file = NULL;
+		}
+	}
+}
+
+// Worker thread: runs on efficiency core, handles memcpy/write
+static void* capture_worker_func(void* arg) {
+	(void)arg;
+	PLAT_pinToCores(CPU_CORE_EFFICIENCY);
+
+	pthread_mutex_lock(&capture_worker_mutex);
+	while (!capture_worker_quit) {
+		// Handle recording file close request under lock
+		if (capture_rec_close_requested) {
+			if (capture_rec_fd >= 0) {
+				close(capture_rec_fd);
+				capture_rec_fd = -1;
+			}
+			if (capture_ts_file) {
+				fclose(capture_ts_file);
+				capture_ts_file = NULL;
+			}
+			capture_rec_close_requested = false;
+			pthread_cond_signal(&capture_rec_closed_cond);
+		}
+
+		while (!capture_worker_has_frame && !capture_worker_quit && !capture_rec_close_requested)
+			pthread_cond_wait(&capture_worker_cond, &capture_worker_mutex);
+		if (capture_worker_quit)
+			break;
+		if (!capture_worker_has_frame)
+			continue; // was woken for close request
+
+		// Grab frame parameters and snapshot file descriptors under lock
+		size_t frame_size = capture_frame_size;
+		uint32_t ts = capture_worker_frame_ts;
+		int local_rec_fd = capture_rec_fd;
+		FILE* local_ts_file = capture_ts_file;
+		capture_worker_has_frame = false;
+		pthread_mutex_unlock(&capture_worker_mutex);
+
+		// Raw bottom-to-top RGBA from glReadPixels — write as-is,
+		// ffmpeg handles vflip + format conversion at encode time
+
+		if (capture_shm_ptr)
+			memcpy(capture_shm_ptr, capture_buf_b, frame_size);
+		if (local_rec_fd >= 0) {
+			size_t remaining = frame_size;
+			const uint8_t* ptr = capture_buf_b;
+			while (remaining > 0) {
+				ssize_t n = write(local_rec_fd, ptr, remaining);
+				if (n < 0)
+					break;
+				ptr += n;
+				remaining -= n;
+			}
+			if (local_ts_file) {
+				fprintf(local_ts_file, "%u\n", ts);
+				fflush(local_ts_file);
+			}
+		}
+
+		pthread_mutex_lock(&capture_worker_mutex);
+	}
+	// Handle any pending close request before exiting
+	if (capture_rec_close_requested) {
+		if (capture_rec_fd >= 0) {
+			close(capture_rec_fd);
+			capture_rec_fd = -1;
+		}
+		if (capture_ts_file) {
+			fclose(capture_ts_file);
+			capture_ts_file = NULL;
+		}
+		capture_rec_close_requested = false;
+		pthread_cond_signal(&capture_rec_closed_cond);
+	}
+	pthread_mutex_unlock(&capture_worker_mutex);
+	return NULL;
+}
+
+static void capture_check(void) {
+	if (strcmp(PLATFORM, "tg5050") != 0)
+		return;
+	if (++capture_counter < 60)
+		return;
+	capture_counter = 0;
+
+	bool rec_active = (access("/tmp/screenrecorder.pid", F_OK) == 0);
+	bool needed = (access("/tmp/screenshot.pid", F_OK) == 0 || rec_active);
+
+	// Open recording files when recording starts (or resumes after game launch)
+	if (rec_active && capture_rec_fd < 0) {
+		mkdir_p(CAPTURE_REC_TMPDIR);
+		int fd = open(CAPTURE_REC_FRAMES_PATH, O_WRONLY | O_CREAT | O_APPEND, 0666);
+		FILE* tsf = fopen(CAPTURE_REC_TS_PATH, "a");
+		// Set both atomically under lock so worker sees consistent state
+		pthread_mutex_lock(&capture_worker_mutex);
+		capture_rec_fd = fd;
+		capture_ts_file = tsf;
+		pthread_mutex_unlock(&capture_worker_mutex);
+	}
+	// Request worker to close recording files (it owns them during processing)
+	if (!rec_active && capture_rec_fd >= 0 && capture_worker_running) {
+		pthread_mutex_lock(&capture_worker_mutex);
+		capture_rec_close_requested = true;
+		pthread_cond_signal(&capture_worker_cond);
+		while (capture_rec_fd >= 0)
+			pthread_cond_wait(&capture_rec_closed_cond, &capture_worker_mutex);
+		pthread_mutex_unlock(&capture_worker_mutex);
+	} else if (!rec_active && capture_rec_fd >= 0) {
+		// Worker not running, safe to close directly
+		close(capture_rec_fd);
+		capture_rec_fd = -1;
+		if (capture_ts_file) {
+			fclose(capture_ts_file);
+			capture_ts_file = NULL;
+		}
+	}
+
+	if (needed && !capture_active) {
+		capture_frame_size = device_width * device_height * 4;
+		if (!capture_buf_a)
+			capture_buf_a = malloc(capture_frame_size);
+		if (!capture_buf_b)
+			capture_buf_b = malloc(capture_frame_size);
+		// Open+mmap shared file for screenshots
+		if (capture_shm_fd < 0) {
+			capture_shm_fd = open("/tmp/fb_mirror.raw", O_CREAT | O_RDWR | O_TRUNC, 0666);
+			if (capture_shm_fd >= 0) {
+				if (ftruncate(capture_shm_fd, capture_frame_size) == 0) {
+					capture_shm_ptr = mmap(NULL, capture_frame_size,
+										   PROT_READ | PROT_WRITE, MAP_SHARED,
+										   capture_shm_fd, 0);
+					if (capture_shm_ptr == MAP_FAILED)
+						capture_shm_ptr = NULL;
+				}
+			}
+		}
+		// Start worker thread
+		if (!capture_worker_running && capture_buf_a && capture_buf_b) {
+			capture_worker_quit = false;
+			capture_worker_has_frame = false;
+			if (pthread_create(&capture_worker_thread, NULL, capture_worker_func, NULL) == 0)
+				capture_worker_running = true;
+		}
+		if (capture_buf_a && capture_buf_b)
+			capture_active = true;
+	} else if (!needed && capture_active) {
+		// Stop worker thread
+		if (capture_worker_running) {
+			pthread_mutex_lock(&capture_worker_mutex);
+			capture_worker_quit = true;
+			pthread_cond_signal(&capture_worker_cond);
+			pthread_mutex_unlock(&capture_worker_mutex);
+			pthread_join(capture_worker_thread, NULL);
+			capture_worker_running = false;
+		}
+		if (capture_shm_ptr) {
+			munmap(capture_shm_ptr, capture_frame_size);
+			capture_shm_ptr = NULL;
+		}
+		if (capture_shm_fd >= 0) {
+			close(capture_shm_fd);
+			capture_shm_fd = -1;
+		}
+		if (capture_buf_a) {
+			free(capture_buf_a);
+			capture_buf_a = NULL;
+		}
+		if (capture_buf_b) {
+			free(capture_buf_b);
+			capture_buf_b = NULL;
+		}
+		unlink("/tmp/fb_mirror.raw");
+		capture_active = false;
+	}
+}
+
+static uint32_t capture_mono_ms(void) {
+	struct timespec ts;
+	clock_gettime(CLOCK_MONOTONIC, &ts);
+	return (uint32_t)(ts.tv_sec * 1000 + ts.tv_nsec / 1000000);
+}
+
+static void capture_write(void) {
+	if (!capture_active || !capture_buf_a)
+		return;
+
+	// Time-based rate limiting at ~30fps
+	uint32_t now_ms = capture_mono_ms();
+	if (now_ms - capture_last_ms < 33)
+		return;
+
+	// Skip expensive GPU readback if worker is still busy with previous frame.
+	// This avoids unnecessary GPU pipeline stalls during gameplay.
+	if (capture_worker_has_frame)
+		return;
+
+	capture_last_ms = now_ms;
+
+	int w = device_width;
+	int h = device_height;
+
+	// GPU readback into buf_a (must happen on render thread).
+	// Always use glReadPixels — works for both SDL renderer and raw GL paths.
+	// Returns bottom-to-top RGBA consistently; ffmpeg handles vflip at encode time.
+	glBindFramebuffer(GL_FRAMEBUFFER, 0);
+	glReadPixels(0, 0, w, h, GL_RGBA, GL_UNSIGNED_BYTE, capture_buf_a);
+
+	// Hand off to worker: swap buffers and signal
+	pthread_mutex_lock(&capture_worker_mutex);
+	if (!capture_worker_has_frame) {
+		uint8_t* tmp = capture_buf_a;
+		capture_buf_a = capture_buf_b;
+		capture_buf_b = tmp;
+		capture_worker_frame_ts = now_ms;
+		capture_worker_has_frame = true;
+		pthread_cond_signal(&capture_worker_cond);
+	}
+	pthread_mutex_unlock(&capture_worker_mutex);
+}
+
 void PLAT_flipHidden() {
 	SDL_RenderClear(vid.renderer);
 	resizeVideo(device_width, device_height, FIXED_PITCH); // !!!???
@@ -1572,6 +1897,7 @@ void PLAT_flipHidden() {
 
 
 void PLAT_flip(SDL_Surface* IGNORED, int ignored) {
+	capture_check();
 	// dont think we need this here tbh
 	// SDL_RenderClear(vid.renderer);
 	if (!vid.blit) {
@@ -1583,6 +1909,7 @@ void PLAT_flip(SDL_Surface* IGNORED, int ignored) {
 		SDL_RenderCopy(vid.renderer, vid.target_layer3, NULL, NULL);
 		SDL_RenderCopy(vid.renderer, vid.target_layer4, NULL, NULL);
 		SDL_RenderCopy(vid.renderer, vid.target_layer5, NULL, NULL);
+		capture_write();
 		SDL_RenderPresent(vid.renderer);
 		return;
 	}
@@ -1599,6 +1926,7 @@ void PLAT_flip(SDL_Surface* IGNORED, int ignored) {
 		SDL_RenderCopy(vid.renderer, vid.target_layer3, NULL, NULL);
 		SDL_RenderCopy(vid.renderer, vid.target_layer4, NULL, NULL);
 		SDL_RenderCopy(vid.renderer, vid.target_layer5, NULL, NULL);
+		capture_write();
 		SDL_RenderPresent(vid.renderer);
 		return;
 	}
@@ -1628,6 +1956,7 @@ void PLAT_flip(SDL_Surface* IGNORED, int ignored) {
 
 	SDL_RenderCopy(vid.renderer, target, src_rect, dst_rect);
 
+	capture_write();
 	SDL_RenderPresent(vid.renderer);
 	vid.blit = NULL;
 }
@@ -1906,6 +2235,7 @@ int prepareFrameThread(void* data) {
 static SDL_Thread* prepare_thread = NULL;
 
 void PLAT_GL_Swap() {
+	capture_check();
 	//uint64_t performance_frequency = SDL_GetPerformanceFrequency();
 	//uint64_t frame_start = SDL_GetPerformanceCounter();
 
@@ -2190,6 +2520,7 @@ void PLAT_GL_Swap() {
 			1, GL_NONE);
 	}
 
+	capture_write();
 	SDL_GL_SwapWindow(vid.window);
 
 	frame_count++;

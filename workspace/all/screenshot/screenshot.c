@@ -52,6 +52,11 @@ static void mkdir_p(const char* path) {
 	mkdir(tmp, 0755);
 }
 
+#define FB_MIRROR_PATH "/tmp/fb_mirror.raw"
+#define FB_MIRROR_WIDTH "1280"
+#define FB_MIRROR_HEIGHT "720"
+#define FB_MIRROR_VIDEO_SIZE FB_MIRROR_WIDTH "x" FB_MIRROR_HEIGHT
+
 static void capture_screenshot(void) {
 	mkdir_p(SCREENSHOT_DIR);
 
@@ -63,6 +68,8 @@ static void capture_screenshot(void) {
 			 t->tm_year + 1900, t->tm_mon + 1, t->tm_mday,
 			 t->tm_hour, t->tm_min, t->tm_sec);
 
+	int use_rawvideo = (access(FB_MIRROR_PATH, F_OK) == 0);
+
 	pid_t pid = fork();
 	if (pid < 0)
 		return;
@@ -72,11 +79,22 @@ static void capture_screenshot(void) {
 		freopen("/dev/null", "r", stdin);
 		freopen("/dev/null", "w", stdout);
 		freopen("/dev/null", "w", stderr);
-		execl(FFMPEG_PATH, "ffmpeg", "-nostdin",
-			  "-f", "fbdev", "-i", "/dev/fb0",
-			  "-frames:v", "1", "-c:v", "mjpeg", "-q:v", "2",
-			  "-y", output,
-			  (char*)NULL);
+		if (use_rawvideo) {
+			execl(FFMPEG_PATH, "ffmpeg", "-nostdin",
+				  "-f", "rawvideo", "-pixel_format", "rgba",
+				  "-video_size", FB_MIRROR_VIDEO_SIZE,
+				  "-i", FB_MIRROR_PATH,
+				  "-vf", "vflip",
+				  "-frames:v", "1", "-c:v", "mjpeg", "-q:v", "2",
+				  "-y", output,
+				  (char*)NULL);
+		} else {
+			execl(FFMPEG_PATH, "ffmpeg", "-nostdin",
+				  "-f", "fbdev", "-i", "/dev/fb0",
+				  "-frames:v", "1", "-c:v", "mjpeg", "-q:v", "2",
+				  "-y", output,
+				  (char*)NULL);
+		}
 		_exit(1);
 	}
 
