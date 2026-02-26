@@ -344,6 +344,7 @@ int main(int argc, char* argv[]) {
 	int has_menu = HAS_MENU_BUTTON;
 	int has_home = HAS_HOME_BUTTON;
 	int has_analog = (AXIS_LX != AXIS_NA);
+	int has_joystick = (has_analog && HAS_JOYSTICK);
 
 	int oy = SCALE1(PADDING);
 	if (!has_L3 && !has_R3)
@@ -375,7 +376,7 @@ int main(int argc, char* argv[]) {
 			quit = true;
 
 		// L3+R3 triggers joystick calibration
-		if (has_analog && has_L3 && has_R3 &&
+		if (has_joystick &&
 			((PAD_justPressed(BTN_L3) && PAD_isPressed(BTN_R3)) ||
 			 (PAD_justPressed(BTN_R3) && PAD_isPressed(BTN_L3)))) {
 			cal_run(screen);
@@ -559,7 +560,7 @@ int main(int argc, char* argv[]) {
 			}
 
 			// JOYSTICK indicators (below L3/R3, centered between side and middle)
-			if (has_analog) {
+			if (has_joystick) {
 				int jside = PILL_SIZE * 3;
 				int jsz = SCALE1(jside);
 				int jy = oy + SCALE1(PILL_SIZE * 6);
@@ -601,7 +602,7 @@ int main(int argc, char* argv[]) {
 				}
 			}
 
-			if (has_analog && has_L3 && has_R3)
+			if (has_joystick)
 				UI_renderButtonHintBar(screen, (char*[]){"SELECT+START", "QUIT", "L3+R3", "CALIBRATE", NULL});
 			else
 				UI_renderButtonHintBar(screen, (char*[]){"SELECT+START", "QUIT", NULL});

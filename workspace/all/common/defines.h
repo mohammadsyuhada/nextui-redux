@@ -188,6 +188,10 @@ enum {
 #define AXIS_RY AXIS_NA
 #endif
 
+#ifndef HAS_JOYSTICK
+#define HAS_JOYSTICK 0
+#endif
+
 #ifndef HAS_HDMI
 #define HDMI_WIDTH FIXED_WIDTH
 #define HDMI_HEIGHT FIXED_HEIGHT
