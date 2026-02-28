@@ -8,7 +8,7 @@ exec 2>&1
 
 echo "$0" "$@"
 
-EMU_DIR="$SDCARD_PATH/Emus/shared/Drastic"
+EMU_DIR="$SDCARD_PATH/Emus/shared/drastic"
 PAK_DIR="$(dirname "$0")"
 
 # Hook code needs libjson-c.so.4 but device ships libjson-c.so.5
@@ -43,6 +43,9 @@ main() {
     echo performance >/sys/devices/system/cpu/cpu4/cpufreq/scaling_governor
     echo 1584000 >/sys/devices/system/cpu/cpu4/cpufreq/scaling_max_freq
     echo 1584000 >/sys/devices/system/cpu/cpu4/cpufreq/scaling_min_freq
+
+    # GPU: lock to performance for DRM rendering
+    echo performance >/sys/devices/platform/soc@3000000/1800000.gpu/devfreq/1800000.gpu/governor 2>/dev/null
 
     # Setup external directories
     mkdir -p "$SDCARD_PATH/Saves/NDS"

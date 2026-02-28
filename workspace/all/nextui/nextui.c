@@ -69,6 +69,10 @@ static ScrollTextState list_scroll = {0};
 static ShortcutAction confirm_shortcut_action = SHORTCUT_NONE;
 static Entry* confirm_shortcut_entry = NULL;
 
+#define IDLE_TIMEOUT_MS 3000 // 3 seconds of no input
+#define IDLE_FRAME_MS 100	 // ~10 FPS when idle
+static uint32_t last_active_input = 0;
+
 SDL_Surface* screen = NULL;
 static SDL_Surface* blackBG = NULL;
 static bool had_thumb = false;
@@ -445,6 +449,9 @@ int main(int argc, char* argv[]) {
 		unsigned long now = SDL_GetTicks();
 
 		PAD_poll();
+
+		if (PAD_anyPressed())
+			last_active_input = SDL_GetTicks();
 
 		int total = top->entries->count;
 
@@ -839,8 +846,9 @@ int main(int argc, char* argv[]) {
 				setNeedDraw(0);
 			} else {
 				unsigned long elapsed = SDL_GetTicks() - now;
-				if (elapsed < 16)
-					SDL_Delay(16 - elapsed);
+				int frame_target = (SDL_GetTicks() - last_active_input > IDLE_TIMEOUT_MS) ? IDLE_FRAME_MS : 16;
+				if (elapsed < frame_target)
+					SDL_Delay(frame_target - elapsed);
 			}
 			SDL_UnlockMutex(thumbqueueMutex);
 			SDL_UnlockMutex(bgqueueMutex);

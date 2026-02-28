@@ -11,6 +11,9 @@ echo schedutil > /sys/devices/system/cpu/cpu4/cpufreq/scaling_governor 2>/dev/nu
 echo 408000 > /sys/devices/system/cpu/cpu4/cpufreq/scaling_min_freq 2>/dev/null
 echo 2160000 > /sys/devices/system/cpu/cpu4/cpufreq/scaling_max_freq 2>/dev/null
 
+# GPU: lock to performance for hardware-accelerated video rendering
+echo performance > /sys/devices/platform/soc@3000000/1800000.gpu/devfreq/1800000.gpu/governor 2>/dev/null
+
 export SDL_NOMOUSE=1
 export HOME=/mnt/SDCARD
 mkdir -p /mnt/SDCARD/Videos

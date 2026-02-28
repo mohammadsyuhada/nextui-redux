@@ -337,6 +337,8 @@ void* PLAT_cpu_monitor(void* arg) {
 #define CPU_FREQ_MIN 408000
 #define CPU_FREQ_MAX 2160000
 
+#define GPU_GOVERNOR_PATH "/sys/devices/platform/soc@3000000/1800000.gpu/devfreq/1800000.gpu/governor"
+
 static void setGovernor(const char* governor) {
 	putFile(GOVERNOR_PATH, (char*)governor);
 }
@@ -350,6 +352,7 @@ void PLAT_setCPUSpeed(int speed) {
 	switch (speed) {
 	case CPU_SPEED_MENU:
 		setFreqRange(CPU_FREQ_MIN, 672000);
+		putFile(GPU_GOVERNOR_PATH, "simple_ondemand");
 		break;
 	case CPU_SPEED_POWERSAVE:
 		setFreqRange(1200000, 1200000);

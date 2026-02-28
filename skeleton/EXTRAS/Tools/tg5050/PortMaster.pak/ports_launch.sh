@@ -186,6 +186,9 @@ main() {
     echo 408000 >/sys/devices/system/cpu/cpu4/cpufreq/scaling_min_freq
     echo 2160000 >/sys/devices/system/cpu/cpu4/cpufreq/scaling_max_freq
 
+    # GPU: lock to performance for port games (many use OpenGL/SDL2 rendering)
+    echo performance >/sys/devices/platform/soc@3000000/1800000.gpu/devfreq/1800000.gpu/governor 2>/dev/null
+
     mkdir -p "$PORTS_DIR"
 
     # Mount bind .ports to temp dir so port scripts can find game data

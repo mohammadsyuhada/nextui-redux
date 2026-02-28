@@ -8,7 +8,7 @@ exec 2>&1
 
 echo "$0" "$@"
 
-EMU_DIR="$SDCARD_PATH/Emus/shared/Drastic"
+EMU_DIR="$SDCARD_PATH/Emus/shared/drastic"
 PAK_DIR="$(dirname "$0")"
 
 # Hook code (compiled into SDL2) needs libjson-c.so.4 but device may ship libjson-c.so.5

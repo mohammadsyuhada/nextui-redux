@@ -1653,7 +1653,7 @@ static void build_menu_tree(const DeviceInfo* dev) {
 			on_off_labels, 2, on_off_values, get_turbo_r2, set_turbo_r2, reset_turbo_r2);
 	}
 
-	if (has_mute_toggle(dev) && has_analog_sticks(dev)) {
+	if (has_mute_toggle(dev) && !has_analog_sticks(dev)) {
 		mute_items[idx++] = (SettingItem)ITEM_CYCLE_INIT(
 			"Dpad mode when toggled", "Dpad: default. Joystick: Dpad exclusively acts as analog stick.\nBoth: Dpad and Joystick inputs at the same time.",
 			dpad_mode_labels, DPAD_MODE_COUNT, dpad_mode_values, get_mute_dpad_mode, set_mute_dpad_mode, reset_mute_dpad_mode);
